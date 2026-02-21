@@ -1,28 +1,47 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Truck, Users, Map, AlertTriangle, TrendingUp, DollarSign, Activity, Shield, CheckCircle } from 'lucide-react';
+import { Truck, Users, Map, AlertTriangle, TrendingUp, DollarSign, Activity, Shield } from 'lucide-react';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext.jsx';
 
-const container = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.08 } } };
-const item = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
+const container = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.07 } } };
+const item = { hidden: { opacity: 0, y: 18 }, show: { opacity: 1, y: 0, transition: { duration: 0.35 } } };
 
-function StatCard({ label, value, icon, color, sub }) {
+function StatCard({ label, value, icon, color, sub, accent = false }) {
     return (
         <motion.div variants={item} style={{
-            padding: '1.5rem', background: 'var(--bg-card)', borderRadius: '16px',
-            border: '1px solid var(--border)', position: 'relative', overflow: 'hidden'
-        }}>
+            padding: '1.5rem',
+            background: accent ? `linear-gradient(135deg, ${color}18 0%, var(--bg-card) 60%)` : 'var(--bg-card)',
+            borderRadius: '16px',
+            border: `1px solid ${accent ? `${color}30` : 'var(--border)'}`,
+            boxShadow: 'var(--card-shadow)',
+            position: 'relative',
+            overflow: 'hidden',
+            transition: 'transform 0.2s, box-shadow 0.2s'
+        }}
+            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; }}
+        >
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', background: color, opacity: 0.6 }} />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
-                    <p style={{ fontSize: '0.8rem', color: 'var(--text-dim)', fontWeight: 600, marginBottom: '0.5rem' }}>{label}</p>
-                    <p style={{ fontSize: '2rem', fontWeight: 800, color }}>{value}</p>
-                    {sub && <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '0.25rem' }}>{sub}</p>}
+                    <p style={{ fontSize: '0.68rem', color: 'var(--text-dim)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>{label}</p>
+                    <p style={{ fontSize: '2rem', fontWeight: 900, color, letterSpacing: '-0.03em' }}>{value}</p>
+                    {sub && <p style={{ fontSize: '0.72rem', color: 'var(--text-dim)', marginTop: '0.3rem' }}>{sub}</p>}
                 </div>
-                <div style={{ background: `${color}22`, padding: '0.75rem', borderRadius: '12px', color }}>{icon}</div>
+                <div style={{ background: `${color}18`, padding: '0.7rem', borderRadius: '12px', color, border: `1px solid ${color}25` }}>{icon}</div>
             </div>
         </motion.div>
+    );
+}
+
+function SectionHeader({ icon, title, color = 'var(--primary)' }) {
+    return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1rem' }}>
+            <div style={{ color }}>{icon}</div>
+            <h2 style={{ fontWeight: 800, fontSize: '1rem', letterSpacing: '-0.01em', color: 'var(--text-main)' }}>{title}</h2>
+        </div>
     );
 }
 
@@ -37,7 +56,6 @@ export default function Dashboard() {
             try {
                 const kpiRes = await api.get('/analytics/kpi');
                 setKpi(kpiRes.data);
-
                 if (role === 'MANAGER' || role === 'DISPATCHER') {
                     const [op, tr] = await Promise.all([api.get('/analytics/operational'), api.get('/trips')]);
                     setExtra(op.data);
@@ -56,85 +74,114 @@ export default function Dashboard() {
         fetchAll();
     }, [role]);
 
-    const greeting = new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 17 ? 'Good afternoon' : 'Good evening';
+    const hour = new Date().getHours();
+    const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+
+    const roleLabel = { MANAGER: 'Fleet Manager', DISPATCHER: 'Dispatcher', SAFETY_OFFICER: 'Safety Officer', ANALYST: 'Financial Analyst' };
 
     return (
         <motion.div initial="hidden" animate="show" variants={container}>
-            <motion.div variants={item} style={{ marginBottom: '2rem' }}>
-                <h1 style={{ fontSize: '2rem', fontWeight: 800 }}>{greeting}, {user?.firstName}! 👋</h1>
-                <p style={{ color: 'var(--text-dim)', marginTop: '0.4rem' }}>Here's your {role === 'MANAGER' ? 'full fleet' : role === 'DISPATCHER' ? 'operations' : role === 'SAFETY_OFFICER' ? 'safety' : 'financial'} overview</p>
+            {/* Header */}
+            <motion.div variants={item} style={{ marginBottom: '2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.5rem' }}>
+                        <span style={{ fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--primary)', background: 'var(--primary-dim)', padding: '3px 10px', borderRadius: '20px', border: '1px solid rgba(245,191,0,0.2)' }}>
+                            {roleLabel[role] || role}
+                        </span>
+                    </div>
+                    <h1 style={{ fontSize: '2.4rem', fontWeight: 900, letterSpacing: '-0.04em', lineHeight: 1.1, color: 'var(--text-main)' }}>
+                        {greeting}, <span style={{ color: 'var(--primary)' }}>{user?.firstName}</span>
+                    </h1>
+                    <p style={{ color: 'var(--text-dim)', marginTop: '0.5rem', fontSize: '0.9rem' }}>
+                        Here's your live fleet intelligence dashboard
+                    </p>
+                </div>
+                <div style={{ textAlign: 'right', color: 'var(--text-dim)', fontSize: '0.8rem' }}>
+                    <p style={{ fontWeight: 600, color: 'var(--text-sub)' }}>{new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+                    <p style={{ fontSize: '0.72rem', marginTop: '2px' }}>Auto-refreshing every 60s</p>
+                </div>
             </motion.div>
 
-            {/* Fleet KPIs — visible to all */}
-            <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
-                <StatCard label="Active Fleet" value={kpi.activeFleet ?? '—'} icon={<Truck size={22} />} color="#818cf8" sub={`${kpi.totalVehicles} total vehicles`} />
-                <StatCard label="Fleet Utilization" value={`${kpi.utilizationRate ?? 0}%`} icon={<Activity size={22} />} color="#34d399" sub="Active / Total ratio" />
-                <StatCard label="Maintenance Alerts" value={kpi.maintenanceAlerts ?? '—'} icon={<AlertTriangle size={22} />} color="#f59e0b" sub="Vehicles in shop" />
-                <StatCard label="Pending Cargo" value={kpi.pendingCargo ?? '—'} icon={<Map size={22} />} color="#06b6d4" sub="Awaiting dispatch" />
+            {/* Fleet KPIs */}
+            <motion.div variants={item}>
+                <SectionHeader icon={<Truck size={16} />} title="Fleet Overview" />
+            </motion.div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2.5rem' }}>
+                <StatCard label="Active Fleet" value={kpi.activeFleet ?? '—'} icon={<Truck size={20} />} color="#F5BF00" accent sub={`of ${kpi.totalVehicles} vehicles`} />
+                <StatCard label="Fleet Utilization" value={`${kpi.utilizationRate ?? 0}%`} icon={<Activity size={20} />} color="#38BDF8" sub="Active / Total ratio" />
+                <StatCard label="In Maintenance" value={kpi.maintenanceAlerts ?? '—'} icon={<AlertTriangle size={20} />} color="#F97316" sub="Vehicles in shop" />
+                <StatCard label="Awaiting Dispatch" value={kpi.pendingCargo ?? '—'} icon={<Map size={20} />} color="#A78BFA" sub="Cargo pending" />
             </div>
 
-            {/* MANAGER / DISPATCHER — Operational KPIs */}
+            {/* Operational KPIs */}
             {(role === 'MANAGER' || role === 'DISPATCHER') && (
-                <motion.div variants={item} style={{ marginBottom: '2rem' }}>
-                    <h2 style={{ fontWeight: 700, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Map size={18} color="var(--primary)" /> Operational Overview
-                    </h2>
-                    <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
-                        <StatCard label="Active Trips" value={extra.activeTrips ?? '—'} icon={<Map size={20} />} color="#818cf8" />
-                        <StatCard label="Pending Trips" value={extra.pendingTrips ?? '—'} icon={<TrendingUp size={20} />} color="#f59e0b" />
-                        <StatCard label="Available Vehicles" value={extra.availableVehicles ?? '—'} icon={<Truck size={20} />} color="#34d399" />
-                        <StatCard label="Available Drivers" value={extra.availableDrivers ?? '—'} icon={<Users size={20} />} color="#06b6d4" />
+                <>
+                    <motion.div variants={item}>
+                        <SectionHeader icon={<Map size={16} />} title="Operations Status" color="#38BDF8" />
+                    </motion.div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '2.5rem' }}>
+                        <StatCard label="Active Trips" value={extra.activeTrips ?? '—'} icon={<Map size={18} />} color="#38BDF8" />
+                        <StatCard label="Pending Trips" value={extra.pendingTrips ?? '—'} icon={<TrendingUp size={18} />} color="#F5BF00" />
+                        <StatCard label="Available Vehicles" value={extra.availableVehicles ?? '—'} icon={<Truck size={18} />} color="#22C55E" />
+                        <StatCard label="On-Duty Drivers" value={extra.availableDrivers ?? '—'} icon={<Users size={18} />} color="#A78BFA" />
                     </div>
-                </motion.div>
+                </>
             )}
 
-            {/* MANAGER / DISPATCHER — Recent Trips */}
+            {/* Recent Trips */}
             {(role === 'MANAGER' || role === 'DISPATCHER') && trips.length > 0 && (
-                <motion.div variants={item} style={{ padding: '1.5rem', background: 'var(--bg-card)', borderRadius: '16px', border: '1px solid var(--border)', marginBottom: '2rem' }}>
-                    <h3 style={{ fontWeight: 700, marginBottom: '1rem' }}>🚚 Recent Trips</h3>
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                        <thead><tr>{['Trip #', 'Route', 'Driver', 'Status'].map(h => <th key={h} style={{ textAlign: 'left', padding: '8px', fontSize: '0.78rem', color: 'var(--text-dim)', borderBottom: '1px solid var(--border)' }}>{h}</th>)}</tr></thead>
-                        <tbody>
-                            {trips.map(t => (
-                                <tr key={t.id}>
-                                    <td style={{ padding: '8px', fontSize: '0.85rem', fontFamily: 'monospace' }}>#{t.tripNumber?.slice(0, 8)}</td>
-                                    <td style={{ padding: '8px', fontSize: '0.85rem' }}>{t.originAddress} → {t.destinationAddress}</td>
-                                    <td style={{ padding: '8px', fontSize: '0.85rem', color: 'var(--text-dim)' }}>{t.driver?.name}</td>
-                                    <td style={{ padding: '8px' }}><span style={{ padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 700, background: t.status === 'Completed' ? 'rgba(52,211,153,0.15)' : t.status === 'Dispatched' ? 'rgba(245,158,11,0.15)' : 'rgba(148,163,184,0.1)', color: t.status === 'Completed' ? '#34d399' : t.status === 'Dispatched' ? '#f59e0b' : '#94a3b8' }}>{t.status}</span></td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </motion.div>
-            )}
-
-            {/* SAFETY OFFICER / MANAGER — Safety KPIs */}
-            {(role === 'SAFETY_OFFICER' || role === 'MANAGER') && (
-                <motion.div variants={item} style={{ padding: '1.5rem', background: 'var(--bg-card)', borderRadius: '16px', border: '1px solid var(--border)', marginBottom: '2rem' }}>
-                    <h3 style={{ fontWeight: 700, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}><Shield size={18} color="#4ade80" /> Safety & Compliance</h3>
-                    <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem' }}>
-                        <StatCard label="Expired Licenses" value={extra.expiredLicenses ?? '—'} icon={<AlertTriangle size={18} />} color="#f87171" />
-                        <StatCard label="Expiring ≤30 Days" value={extra.expiringLicenses ?? '—'} icon={<AlertTriangle size={18} />} color="#fbbf24" />
-                        <StatCard label="Avg Safety Score" value={`${extra.avgSafetyScore ?? 0}%`} icon={<Shield size={18} />} color="#4ade80" />
-                        <StatCard label="Suspended Drivers" value={extra.suspendedDrivers ?? '—'} icon={<Users size={18} />} color="#f87171" />
+                <motion.div variants={item} style={{ marginBottom: '2.5rem' }}>
+                    <SectionHeader icon={<Map size={16} />} title="Recent Deployments" color="#38BDF8" />
+                    <div className="table-wrapper">
+                        <table>
+                            <thead><tr>
+                                {['Trip ID', 'Route', 'Driver', 'Vehicle', 'Status'].map(h =>
+                                    <th key={h}>{h}</th>)}
+                            </tr></thead>
+                            <tbody>
+                                {trips.map(t => {
+                                    const STATUS = { Completed: { c: '#22C55E', bg: 'rgba(34,197,94,0.12)' }, Dispatched: { c: '#F5BF00', bg: 'rgba(245,191,0,0.12)' }, Draft: { c: 'var(--text-dim)', bg: 'var(--bg-input)' } };
+                                    const s = STATUS[t.status] || STATUS.Draft;
+                                    return (
+                                        <tr key={t.id}>
+                                            <td style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.78rem', color: 'var(--text-dim)' }}>#{t.tripNumber?.split('-').pop() || t.id.slice(0, 8)}</td>
+                                            <td style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-main)' }}>{t.originAddress} <span style={{ color: '#F5BF00', margin: '0 4px' }}>→</span> {t.destinationAddress}</td>
+                                            <td style={{ color: 'var(--text-sub)', fontSize: '0.85rem' }}>{t.driver?.name}</td>
+                                            <td style={{ color: 'var(--text-sub)', fontSize: '0.85rem' }}>{t.vehicle?.name}</td>
+                                            <td><span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '0.7rem', fontWeight: 700, background: s.bg, color: s.c, letterSpacing: '0.05em', textTransform: 'uppercase' }}>{t.status}</span></td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
                     </div>
-                    {(extra.expiredLicenses ?? 0) > 0 && (
-                        <div style={{ marginTop: '1rem', padding: '0.75rem 1rem', background: 'rgba(239,68,68,0.1)', borderRadius: '10px', border: '1px solid rgba(239,68,68,0.2)' }}>
-                            <p style={{ fontSize: '0.85rem', color: '#f87171', fontWeight: 600 }}>🔒 {extra.expiredLicenses} driver(s) auto-suspended — expired licenses</p>
-                        </div>
-                    )}
                 </motion.div>
             )}
 
-            {/* ANALYST / MANAGER — Financial KPIs */}
+            {/* Safety KPIs */}
+            {(role === 'SAFETY_OFFICER' || role === 'MANAGER') && (
+                <motion.div variants={item} style={{ marginBottom: '2.5rem' }}>
+                    <SectionHeader icon={<Shield size={16} />} title="Safety & Compliance" color="#22C55E" />
+                    <div style={{ padding: '1.5rem', background: 'var(--bg-card)', borderRadius: '16px', border: '1px solid var(--border)', boxShadow: 'var(--card-shadow)' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', marginBottom: extra.expiredLicenses > 0 ? '1.25rem' : 0 }}>
+                            <StatCard label="Expired Licenses" value={extra.expiredLicenses ?? '—'} icon={<AlertTriangle size={16} />} color="#EF4444" />
+                            <StatCard label="Expiring ≤30d" value={extra.expiringLicenses ?? '—'} icon={<AlertTriangle size={16} />} color="#F5BF00" />
+                            <StatCard label="Avg Safety Score" value={`${extra.avgSafetyScore ?? 0}%`} icon={<Shield size={16} />} color="#22C55E" />
+                            <StatCard label="Suspended" value={extra.suspendedDrivers ?? '—'} icon={<Users size={16} />} color="#EF4444" />
+                        </div>
+                    </div>
+                </motion.div>
+            )}
+
+            {/* Financial KPIs */}
             {(role === 'ANALYST' || role === 'MANAGER') && (
-                <motion.div variants={item} style={{ padding: '1.5rem', background: 'var(--bg-card)', borderRadius: '16px', border: '1px solid var(--border)' }}>
-                    <h3 style={{ fontWeight: 700, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}><DollarSign size={18} color="#06b6d4" /> Financial Overview</h3>
-                    <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem' }}>
-                        <StatCard label="Total Fuel Cost" value={`₹${(extra.totalFuelCost ?? 0).toLocaleString()}`} icon={<DollarSign size={18} />} color="#f87171" />
-                        <StatCard label="Fleet ROI" value={`+${extra.fleetROI ?? 0}%`} icon={<TrendingUp size={18} />} color="#4ade80" />
-                        <StatCard label="Utilization Rate" value={`${extra.utilizationRate ?? 0}%`} icon={<Activity size={18} />} color="#818cf8" />
-                        <StatCard label="Total Expenses" value={`₹${(extra.totalExpenses ?? 0).toLocaleString()}`} icon={<DollarSign size={18} />} color="#06b6d4" />
+                <motion.div variants={item}>
+                    <SectionHeader icon={<DollarSign size={16} />} title="Financial Overview" color="#38BDF8" />
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem' }}>
+                        <StatCard label="Total Fuel Cost" value={`₹${(extra.totalFuelCost ?? 0).toLocaleString()}`} icon={<DollarSign size={18} />} color="#EF4444" />
+                        <StatCard label="Fleet ROI" value={`+${extra.fleetROI ?? 0}%`} icon={<TrendingUp size={18} />} color="#22C55E" />
+                        <StatCard label="Utilization" value={`${extra.utilizationRate ?? 0}%`} icon={<Activity size={18} />} color="#38BDF8" />
+                        <StatCard label="Total Expenses" value={`₹${(extra.totalExpenses ?? 0).toLocaleString()}`} icon={<DollarSign size={18} />} color="#A78BFA" />
                     </div>
                 </motion.div>
             )}

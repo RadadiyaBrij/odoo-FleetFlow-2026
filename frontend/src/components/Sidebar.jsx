@@ -1,20 +1,6 @@
-import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Truck, Users, Map, Wrench, DollarSign, Activity, BarChart2, LogOut, Shield } from 'lucide-react';
+import { NavLink } from 'react-router-dom';
+import { LayoutDashboard, Truck, Users, Map, Wrench, DollarSign, Activity, BarChart2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
-
-const ROLE_LABELS = {
-    MANAGER: 'Fleet Manager',
-    DISPATCHER: 'Dispatcher',
-    SAFETY_OFFICER: 'Safety Officer',
-    ANALYST: 'Financial Analyst'
-};
-
-const ROLE_COLORS = {
-    MANAGER: '#818cf8',
-    DISPATCHER: '#34d399',
-    SAFETY_OFFICER: '#f59e0b',
-    ANALYST: '#06b6d4'
-};
 
 const NAV_ITEMS = [
     { to: '/dashboard', icon: <LayoutDashboard size={20} />, label: 'Dashboard', page: 'dashboard' },
@@ -28,25 +14,31 @@ const NAV_ITEMS = [
 ];
 
 export default function Sidebar() {
-    const { user, role, can, logout } = useAuth();
-    const navigate = useNavigate();
-
-    const handleLogout = () => {
-        logout();
-        navigate('/login');
-    };
-
-    const initials = user ? `${(user.firstName || user.username || 'U')[0]}${(user.lastName || '')[0] || ''}`.toUpperCase() : 'U';
-    const color = ROLE_COLORS[role] || '#818cf8';
+    const { can } = useAuth();
 
     return (
         <aside className="sidebar">
+            {/* Branding */}
             <div className="sidebar-logo">
-                <span style={{ fontSize: '1.5rem' }}>🚛</span>
-                <span style={{ fontWeight: 800, fontSize: '1.25rem', background: 'linear-gradient(135deg, var(--primary), var(--accent))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>FleetFlow</span>
+                <div style={{
+                    width: 36, height: 36, borderRadius: 10,
+                    background: '#F5BF00',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '1.1rem', flexShrink: 0,
+                    boxShadow: '0 4px 14px rgba(245,191,0,0.4)'
+                }}>🚛</div>
+                <div>
+                    <span style={{ fontWeight: 900, fontSize: '1.2rem', color: '#F5BF00', letterSpacing: '-0.04em' }}>FleetFlow</span>
+                    <div style={{ fontSize: '0.62rem', color: 'var(--text-dim)', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Logistics v2.0</div>
+                </div>
             </div>
 
-            <nav className="sidebar-nav" style={{ flex: 1 }}>
+            <div style={{ padding: '1.5rem 1.5rem 0.5rem', fontSize: '0.68rem', fontWeight: 800, color: 'var(--text-dim)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+                Operational Menu
+            </div>
+
+            {/* Navigation */}
+            <nav className="sidebar-nav">
                 {NAV_ITEMS.filter(item => can.access[item.page]).map(item => (
                     <NavLink
                         key={item.to}
@@ -59,33 +51,12 @@ export default function Sidebar() {
                 ))}
             </nav>
 
-            <div style={{ padding: '1rem 1.25rem', borderTop: '1px solid var(--border)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-                    <div style={{
-                        width: 38, height: 38, borderRadius: '50%', background: `${color}22`,
-                        border: `2px solid ${color}`, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '0.8rem', fontWeight: 700, color, flexShrink: 0
-                    }}>
-                        {initials}
-                    </div>
-                    <div style={{ overflow: 'hidden' }}>
-                        <p style={{ fontWeight: 700, fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {user?.firstName} {user?.lastName}
-                        </p>
-                        <p style={{ fontSize: '0.75rem', color, fontWeight: 600 }}>{ROLE_LABELS[role] || role}</p>
-                    </div>
+            {/* Footer / System Status */}
+            <div style={{ padding: '1.5rem', borderTop: '1px solid var(--border)', marginTop: 'auto' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-dim)' }}>
+                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#22C55E' }} />
+                    <span style={{ fontSize: '0.7rem', fontWeight: 600 }}>System Secure</span>
                 </div>
-                <button
-                    onClick={handleLogout}
-                    style={{
-                        width: '100%', display: 'flex', alignItems: 'center', gap: '8px',
-                        padding: '0.6rem 1rem', background: 'rgba(239,68,68,0.1)', color: '#f87171',
-                        border: '1px solid rgba(239,68,68,0.2)', borderRadius: '10px',
-                        cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600
-                    }}
-                >
-                    <LogOut size={16} /> Sign Out
-                </button>
             </div>
         </aside>
     );

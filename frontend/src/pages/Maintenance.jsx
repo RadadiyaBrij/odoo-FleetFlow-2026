@@ -1,9 +1,17 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Wrench, X, CheckCircle } from 'lucide-react';
+import { Plus, X, CheckCircle2, Wrench } from 'lucide-react';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext.jsx';
+
+const STATUS_CONFIG = {
+    Pending: { color: '#F5BF00', bg: 'rgba(245,191,0,0.12)', border: 'rgba(245,191,0,0.2)' },
+    'In Progress': { color: '#38BDF8', bg: 'rgba(56,189,248,0.12)', border: 'rgba(56,189,248,0.2)' },
+    Completed: { color: '#22C55E', bg: 'rgba(34,197,94,0.12)', border: 'rgba(34,197,94,0.2)' },
+};
+
+const ISSUE_TYPES = ['Engine Repair', 'Tire Change', 'Oil Service', 'Brake Service', 'Electrical', 'Body Work', 'Routine Check', 'Other'];
 
 export default function Maintenance() {
     const { can } = useAuth();
@@ -24,7 +32,7 @@ export default function Maintenance() {
         e.preventDefault();
         try {
             await api.post('/maintenance', form);
-            toast.success('Maintenance log created — vehicle set to In Shop');
+            toast.success('Service log created');
             setShowModal(false);
             setForm({ vehicleId: '', issueType: 'Engine Repair', description: '', cost: '', serviceDate: '' });
             fetchData();
@@ -34,52 +42,71 @@ export default function Maintenance() {
     const handleComplete = async (id) => {
         try {
             await api.patch(`/maintenance/${id}/complete`, { completedDate: new Date().toISOString(), technicianName: 'Workshop Team' });
-            toast.success('Maintenance completed — vehicle set to Available');
+            toast.success('✅ Maintenance done');
             fetchData();
         } catch (err) { toast.error(err.response?.data?.error?.message || 'Failed to complete'); }
     };
 
-    const STATUS_COLORS = { Pending: '#f59e0b', 'In Progress': '#818cf8', Completed: '#4ade80' };
-    const ISSUE_TYPES = ['Engine Repair', 'Tire Change', 'Oil Service', 'Brake Service', 'Electrical', 'Body Work', 'Routine Check', 'Other'];
+    const totalCost = logs.reduce((s, l) => s + l.cost, 0);
 
     return (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <header className="flex-between" style={{ marginBottom: '2rem' }}>
+            <div className="flex-between" style={{ marginBottom: '1.75rem' }}>
                 <div>
-                    <h1 style={{ fontSize: '2.2rem', fontWeight: 800 }}>Maintenance Logs</h1>
-                    <p style={{ color: 'var(--text-dim)', marginTop: '0.5rem' }}>
-                        {can.manage.maintenance ? 'Create service logs & complete maintenance (auto-updates vehicle status)' : '🔍 View Only — Contact Fleet Manager to manage maintenance'}
-                    </p>
+                    <span className="chip-yellow" style={{ background: '#F9731615', color: '#F97316', borderColor: '#F9731630', marginBottom: '0.4rem' }}>Workshop</span>
+                    <h1 className="page-title">Maintenance Logs</h1>
+                    <p className="page-subtitle">Track vehicle health and service history</p>
                 </div>
                 {can.manage.maintenance && (
-                    <button className="btn-primary" style={{ width: 'auto', padding: '0.75rem 1.5rem', display: 'flex', gap: '8px', alignItems: 'center' }} onClick={() => setShowModal(true)}>
-                        <Plus size={20} /> New Service Log
+                    <button className="btn-primary" style={{ width: 'auto', marginTop: 0 }} onClick={() => setShowModal(true)}>
+                        <Plus size={18} /> New Service Log
                     </button>
                 )}
-            </header>
+            </div>
 
-            <div className="table-wrapper" style={{ marginTop: 0 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.25rem', marginBottom: '2rem', maxWidth: 640 }}>
+                <div style={{ padding: '1.25rem', background: 'var(--bg-card)', borderRadius: 16, border: '1px solid var(--border)', borderLeft: '4px solid #F5BF00', boxShadow: 'var(--card-shadow)' }}>
+                    <p style={{ fontSize: '0.7rem', color: 'var(--text-dim)', fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>Pending Jobs</p>
+                    <p style={{ fontSize: '1.5rem', fontWeight: 900, color: '#F5BF00' }}>{logs.filter(l => l.status === 'Pending').length}</p>
+                </div>
+                <div style={{ padding: '1.25rem', background: 'var(--bg-card)', borderRadius: 16, border: '1px solid var(--border)', borderLeft: '4px solid #22C55E', boxShadow: 'var(--card-shadow)' }}>
+                    <p style={{ fontSize: '0.7rem', color: 'var(--text-dim)', fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>Completed</p>
+                    <p style={{ fontSize: '1.5rem', fontWeight: 900, color: '#22C55E' }}>{logs.filter(l => l.status === 'Completed').length}</p>
+                </div>
+                <div style={{ padding: '1.25rem', background: 'var(--bg-card)', borderRadius: 16, border: '1px solid var(--border)', borderLeft: '4px solid #38BDF8', boxShadow: 'var(--card-shadow)' }}>
+                    <p style={{ fontSize: '0.7rem', color: 'var(--text-dim)', fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>Total Cost</p>
+                    <p style={{ fontSize: '1.5rem', fontWeight: 900, color: '#38BDF8' }}>₹{Math.round(totalCost).toLocaleString()}</p>
+                </div>
+            </div>
+
+            <div className="table-wrapper">
                 <table>
-                    <thead><tr>
-                        <th>Vehicle</th><th>Issue Type</th><th>Description</th><th>Cost</th><th>Service Date</th><th>Status</th>
-                        {can.manage.maintenance && <th>Action</th>}
-                    </tr></thead>
+                    <thead><tr><th>Vehicle</th><th>Issue Type</th><th>Description</th><th>Cost</th><th>Date</th><th>Status</th>{can.manage.maintenance && <th>Action</th>}</tr></thead>
                     <tbody>
-                        {logs.length === 0 ? <tr><td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-dim)', padding: '3rem' }}>No maintenance logs found</td></tr>
-                            : logs.map(l => (
-                                <tr key={l.id}>
-                                    <td><div style={{ fontWeight: 700 }}>{l.vehicle?.name}</div><div style={{ fontSize: '0.78rem', color: 'var(--text-dim)', fontFamily: 'monospace' }}>{l.vehicle?.licensePlate}</div></td>
-                                    <td>{l.issueType}</td>
-                                    <td style={{ maxWidth: '200px', color: 'var(--text-dim)', fontSize: '0.85rem' }}>{l.description || '—'}</td>
-                                    <td style={{ fontWeight: 700 }}>₹{l.cost.toLocaleString()}</td>
-                                    <td>{new Date(l.serviceDate).toLocaleDateString('en-IN')}</td>
-                                    <td><span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700, background: `${STATUS_COLORS[l.status] || '#94a3b8'}22`, color: STATUS_COLORS[l.status] || '#94a3b8' }}>{l.status}</span></td>
-                                    {can.manage.maintenance && (
-                                        <td>{l.status === 'Pending' && <button onClick={() => handleComplete(l.id)} style={{ padding: '5px 12px', fontSize: '0.78rem', background: 'rgba(74,222,128,0.15)', color: '#4ade80', border: '1px solid rgba(74,222,128,0.3)', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}><CheckCircle size={13} /> Complete</button>}
-                                            {l.status === 'Completed' && <CheckCircle size={16} color="#4ade80" />}</td>
-                                    )}
-                                </tr>
-                            ))}
+                        {logs.map(l => (
+                            <tr key={l.id}>
+                                <td>
+                                    <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{l.vehicle?.name}</div>
+                                    <div style={{ fontSize: '0.7rem', color: 'var(--text-dim)' }}>{l.vehicle?.licensePlate}</div>
+                                </td>
+                                <td><span className="badge" style={{ background: '#F9731615', color: '#F97316', border: '1px solid #F9731630' }}>{l.issueType}</span></td>
+                                <td style={{ color: 'var(--text-sub)', fontSize: '0.85rem' }}>{l.description}</td>
+                                <td style={{ fontWeight: 700, color: 'var(--primary)' }}>₹{l.cost.toLocaleString()}</td>
+                                <td style={{ color: 'var(--text-dim)' }}>{new Date(l.serviceDate).toLocaleDateString()}</td>
+                                <td>
+                                    <span className="badge" style={{ background: STATUS_CONFIG[l.status]?.bg, color: STATUS_CONFIG[l.status]?.color, border: `1px solid ${STATUS_CONFIG[l.status]?.border}` }}>{l.status}</span>
+                                </td>
+                                {can.manage.maintenance && (
+                                    <td>
+                                        {l.status === 'Pending' && (
+                                            <button onClick={() => handleComplete(l.id)} className="btn-ghost" style={{ padding: '4px 10px', color: '#22C55E', borderColor: '#22C55E30' }}>
+                                                <CheckCircle2 size={14} /> Finish
+                                            </button>
+                                        )}
+                                    </td>
+                                )}
+                            </tr>
+                        ))}
                     </tbody>
                 </table>
             </div>
@@ -87,33 +114,29 @@ export default function Maintenance() {
             <AnimatePresence>
                 {showModal && (
                     <div className="modal-overlay">
-                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="modal">
-                            <div className="flex-between" style={{ marginBottom: '1.5rem' }}>
-                                <h2 style={{ fontSize: '1.4rem', fontWeight: 700 }}>New Service Log</h2>
-                                <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)' }}><X size={20} /></button>
+                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="modal">
+                            <div className="flex-between mb-2">
+                                <h2 className="page-title" style={{ fontSize: '1.5rem' }}>Log Service</h2>
+                                <button onClick={() => setShowModal(false)} className="btn-ghost" style={{ padding: 6, border: 'none' }}><X size={20} /></button>
                             </div>
                             <form onSubmit={handleSubmit}>
                                 <div className="form-group"><label>Vehicle</label>
-                                    <select required value={form.vehicleId} onChange={e => setForm({ ...form, vehicleId: e.target.value })} style={{ paddingLeft: '1rem' }}>
+                                    <select required value={form.vehicleId} onChange={e => setForm({ ...form, vehicleId: e.target.value })}>
                                         <option value="">Select Vehicle</option>
-                                        {vehicles.map(v => <option key={v.id} value={v.id}>{v.name} — {v.licensePlate}</option>)}
+                                        {vehicles.map(v => <option key={v.id} value={v.id}>{v.name} ({v.licensePlate})</option>)}
                                     </select>
                                 </div>
                                 <div className="grid-2">
                                     <div className="form-group"><label>Issue Type</label>
-                                        <select value={form.issueType} onChange={e => setForm({ ...form, issueType: e.target.value })} style={{ paddingLeft: '1rem' }}>
+                                        <select value={form.issueType} onChange={e => setForm({ ...form, issueType: e.target.value })}>
                                             {ISSUE_TYPES.map(t => <option key={t}>{t}</option>)}
                                         </select>
                                     </div>
-                                    <div className="form-group"><label>Service Date</label><input required type="date" value={form.serviceDate} onChange={e => setForm({ ...form, serviceDate: e.target.value })} /></div>
+                                    <div className="form-group"><label>Service Date</label><input type="date" required value={form.serviceDate} onChange={e => setForm({ ...form, serviceDate: e.target.value })} /></div>
                                 </div>
-                                <div className="form-group"><label>Description</label><input placeholder="Describe the issue..." value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
-                                <div className="form-group"><label>Estimated Cost (₹)</label><input required type="number" placeholder="e.g. 15000" value={form.cost} onChange={e => setForm({ ...form, cost: e.target.value })} /></div>
-                                <div style={{ background: 'rgba(245,158,11,0.07)', padding: '0.85rem', borderRadius: '10px', border: '1px solid rgba(245,158,11,0.2)', marginBottom: '1.5rem' }}>
-                                    <p style={{ fontSize: '0.8rem', color: '#f59e0b', fontWeight: 600 }}>⚠️ Vehicle Status Auto-Update</p>
-                                    <p style={{ fontSize: '0.76rem', opacity: 0.8, marginTop: '2px' }}>Creating this log will automatically set the vehicle status to "In Shop". Completing it will set it back to "Available".</p>
-                                </div>
-                                <button type="submit" className="btn-primary">Create Service Log</button>
+                                <div className="form-group"><label>Cost (₹)</label><input type="number" required placeholder="0.00" value={form.cost} onChange={e => setForm({ ...form, cost: Number(e.target.value) })} /></div>
+                                <div className="form-group"><label>Description</label><textarea rows="3" placeholder="Description of work..." value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} style={{ padding: '0.75rem 1rem' }} /></div>
+                                <button type="submit" className="btn-primary">Create Workshop Log</button>
                             </form>
                         </motion.div>
                     </div>

@@ -1,9 +1,17 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Activity, Shield, Lock, X } from 'lucide-react';
+import { Shield, Lock, X, CheckSquare, Activity } from 'lucide-react';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext.jsx';
+
+const STATUS_CONFIG = {
+    'On Duty': { color: '#22C55E', bg: 'rgba(34,197,94,0.12)', border: 'rgba(34,197,94,0.2)' },
+    'Taking a Break': { color: '#F5BF00', bg: 'rgba(245,191,0,0.12)', border: 'rgba(245,191,0,0.2)' },
+    Suspended: { color: '#EF4444', bg: 'rgba(239,68,68,0.1)', border: 'rgba(239,68,68,0.2)' },
+};
+
+const safetyColor = (s) => s >= 80 ? '#22C55E' : s >= 60 ? '#F5BF00' : '#EF4444';
 
 export default function Performance() {
     const { can } = useAuth();
@@ -13,96 +21,81 @@ export default function Performance() {
 
     const fetchDrivers = async () => {
         try { const { data } = await api.get('/drivers'); setDrivers(data); }
-        catch { toast.error('Failed to load driver data'); }
+        catch { toast.error('Failed to load driver performance'); }
     };
     useEffect(() => { fetchDrivers(); }, []);
-
-    const now = new Date();
-    const isExpired = (d) => new Date(d.licenseExpiryDate) < now;
-    const isExpiringSoon = (d) => {
-        const exp = new Date(d.licenseExpiryDate);
-        const in30 = new Date(now.getTime() + 30 * 24 * 3600 * 1000);
-        return exp >= now && exp <= in30;
-    };
 
     const handleUpdateStatus = async (e) => {
         e.preventDefault();
         try {
             await api.patch(`/drivers/${showStatusModal}/status`, { status: newStatus });
-            toast.success('Driver status updated');
+            toast.success('Duty status updated');
             setShowStatusModal(null);
             fetchDrivers();
-        } catch (err) { toast.error(err.response?.data?.error?.message || 'Failed to update status'); }
+        } catch { toast.error('Failed to update status'); }
     };
-
-    const STATUS_COLORS = { 'On Duty': '#4ade80', 'Taking a Break': '#fbbf24', Suspended: '#f87171' };
-    const safetyColor = (s) => s >= 80 ? '#4ade80' : s >= 60 ? '#fbbf24' : '#f87171';
 
     return (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <header style={{ marginBottom: '2rem' }}>
-                <div className="flex-between">
-                    <div>
-                        <h1 style={{ fontSize: '2.2rem', fontWeight: 800 }}>Driver Performance & Safety</h1>
-                        <p style={{ color: 'var(--text-dim)', marginTop: '0.5rem' }}>
-                            {can.manage.performance ? 'Manage driver status, safety scores & license compliance' : '🔍 View Only — Contact Safety Officer to update driver status'}
-                        </p>
-                    </div>
-                    <div style={{ display: 'flex', gap: '1rem' }}>
-                        <div style={{ padding: '8px 16px', background: 'rgba(239,68,68,0.1)', borderRadius: '10px', border: '1px solid rgba(239,68,68,0.2)', fontSize: '0.85rem', color: '#f87171', fontWeight: 600 }}>
-                            🔒 {drivers.filter(d => isExpired(d)).length} Expired Licenses
-                        </div>
-                        <div style={{ padding: '8px 16px', background: 'rgba(245,158,11,0.1)', borderRadius: '10px', border: '1px solid rgba(245,158,11,0.2)', fontSize: '0.85rem', color: '#fbbf24', fontWeight: 600 }}>
-                            ⚠️ {drivers.filter(d => isExpiringSoon(d)).length} Expiring Soon
-                        </div>
-                    </div>
+            <div className="flex-between" style={{ marginBottom: '1.75rem' }}>
+                <div>
+                    <span className="chip-yellow" style={{ background: '#22C55E15', color: '#22C55E', borderColor: '#22C55E30', marginBottom: '0.4rem' }}>Safety Compliance</span>
+                    <h1 className="page-title">Safety & Performance</h1>
+                    <p className="page-subtitle">Monitor driver behavior and regulatory compliance</p>
                 </div>
-            </header>
+            </div>
 
-            <div className="table-wrapper" style={{ marginTop: 0 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', marginBottom: '2.5rem' }}>
+                {[
+                    { label: 'Avg Safety Score', value: (drivers.reduce((s, d) => s + d.safetyScore, 0) / (drivers.length || 1)).toFixed(1), color: '#22C55E' },
+                    { label: 'Active Drivers', value: drivers.filter(d => d.status === 'On Duty').length, color: '#38BDF8' },
+                    { label: 'Total Complaints', value: drivers.reduce((s, d) => s + d.complaintsCount, 0), color: '#EF4444' },
+                    { label: 'Completion Rate', value: '94%', color: '#F5BF00' }
+                ].map(c => (
+                    <div key={c.label} style={{ padding: '1.25rem', background: 'var(--bg-card)', borderRadius: 16, border: '1px solid var(--border)', borderLeft: `4px solid ${c.color}`, boxShadow: 'var(--card-shadow)' }}>
+                        <p style={{ fontSize: '0.7rem', color: 'var(--text-dim)', fontWeight: 700, textTransform: 'uppercase', marginBottom: 6 }}>{c.label}</p>
+                        <p style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--text-main)' }}>{c.value}</p>
+                    </div>
+                ))}
+            </div>
+
+            <div className="table-wrapper">
                 <table>
-                    <thead><tr>
-                        <th>Driver</th><th>License #</th><th>Expiry</th><th>Completion Rate</th><th>Safety Score</th><th>Complaints</th><th>Status</th>
-                        {can.manage.performance && <th>Actions</th>}
-                    </tr></thead>
+                    <thead><tr><th>Driver</th><th>License Expiry</th><th>Complaints</th><th>Safety Score</th><th>Status</th>{can.manage.performance && <th>Action</th>}</tr></thead>
                     <tbody>
-                        {drivers.length === 0 ? <tr><td colSpan={8} style={{ textAlign: 'center', color: 'var(--text-dim)', padding: '3rem' }}>No drivers found</td></tr>
-                            : drivers.map(d => {
-                                const expired = isExpired(d);
-                                const expiring = isExpiringSoon(d);
-                                const rate = d.tripsCompleted > 0 ? Math.min(Math.round((d.tripsCompleted / (d.tripsCompleted + d.complaintsCount + 1)) * 100), 100) : 0;
-                                return (
-                                    <tr key={d.id} style={{ opacity: expired ? 0.8 : 1 }}>
-                                        <td><div style={{ fontWeight: 600 }}>{d.name}</div><div style={{ fontSize: '0.78rem', color: 'var(--text-dim)' }}>{d.email}</div></td>
-                                        <td style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>{d.licenseNumber}</td>
-                                        <td>
-                                            <span style={{ color: expired ? '#f87171' : expiring ? '#fbbf24' : 'inherit', fontWeight: expired || expiring ? 700 : 400 }}>
-                                                {new Date(d.licenseExpiryDate).toLocaleDateString('en-IN')}
-                                            </span>
-                                            {expired && <span style={{ marginLeft: '6px', fontSize: '0.68rem', background: 'rgba(239,68,68,0.2)', padding: '1px 6px', borderRadius: '8px', color: '#f87171', fontWeight: 700 }}>EXPIRED</span>}
-                                            {expiring && !expired && <span style={{ marginLeft: '6px', fontSize: '0.68rem', background: 'rgba(245,158,11,0.2)', padding: '1px 6px', borderRadius: '8px', color: '#fbbf24', fontWeight: 700 }}>SOON</span>}
-                                        </td>
-                                        <td>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                <div style={{ flex: 1, height: '6px', background: 'var(--bg-input)', borderRadius: '3px' }}>
-                                                    <div style={{ height: '100%', width: `${rate}%`, background: safetyColor(rate), borderRadius: '3px', transition: 'width 0.5s' }} />
-                                                </div>
-                                                <span style={{ fontSize: '0.78rem', fontWeight: 700, minWidth: '32px' }}>{rate}%</span>
+                        {drivers.map(d => {
+                            const expired = new Date(d.licenseExpiryDate) < new Date();
+                            return (
+                                <tr key={d.id}>
+                                    <td style={{ fontWeight: 700, color: 'var(--text-main)' }}>{d.name}</td>
+                                    <td>
+                                        <span style={{ color: expired ? '#EF4444' : 'var(--text-sub)', fontWeight: expired ? 700 : 400 }}>
+                                            {new Date(d.licenseExpiryDate).toLocaleDateString()}
+                                            {expired && <Lock size={12} style={{ marginLeft: 6 }} />}
+                                        </span>
+                                    </td>
+                                    <td style={{ color: d.complaintsCount > 0 ? '#EF4444' : 'var(--text-dim)' }}>{d.complaintsCount}</td>
+                                    <td>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                            <div style={{ flex: 1, height: 6, background: 'var(--bg-input)', borderRadius: 3, maxWidth: 60 }}>
+                                                <div style={{ height: '100%', width: `${d.safetyScore}%`, background: safetyColor(d.safetyScore), borderRadius: 3 }} />
                                             </div>
-                                        </td>
-                                        <td><span style={{ fontWeight: 800, color: safetyColor(d.safetyScore), fontSize: '1.05rem' }}>{d.safetyScore.toFixed(1)}</span><span style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>/100</span></td>
-                                        <td style={{ fontWeight: d.complaintsCount > 0 ? 700 : 400, color: d.complaintsCount > 0 ? '#f87171' : 'inherit' }}>{d.complaintsCount}</td>
+                                            <span style={{ fontWeight: 800, color: safetyColor(d.safetyScore) }}>{d.safetyScore}</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span className="badge" style={{ background: STATUS_CONFIG[d.status]?.bg, color: STATUS_CONFIG[d.status]?.color, border: `1px solid ${STATUS_CONFIG[d.status]?.border}` }}>{d.status}</span>
+                                    </td>
+                                    {can.manage.performance && (
                                         <td>
-                                            <span style={{ padding: '3px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700, background: `${STATUS_COLORS[d.status] || '#94a3b8'}22`, color: STATUS_COLORS[d.status] || '#94a3b8', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                                                {expired && <Lock size={10} />}{d.status}
-                                            </span>
+                                            <button onClick={() => { setShowStatusModal(d.id); setNewStatus(d.status); }} className="btn-ghost" style={{ padding: '4px 8px' }}>
+                                                <Activity size={13} /> Update
+                                            </button>
                                         </td>
-                                        {can.manage.performance && (
-                                            <td><button onClick={() => { setShowStatusModal(d.id); setNewStatus(d.status); }} style={{ padding: '5px 12px', fontSize: '0.78rem', background: 'rgba(99,102,241,0.1)', color: '#818cf8', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>Update Status</button></td>
-                                        )}
-                                    </tr>
-                                );
-                            })}
+                                    )}
+                                </tr>
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>
@@ -110,20 +103,26 @@ export default function Performance() {
             <AnimatePresence>
                 {showStatusModal && (
                     <div className="modal-overlay">
-                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="modal" style={{ maxWidth: '400px' }}>
-                            <div className="flex-between" style={{ marginBottom: '1.5rem' }}>
-                                <h2 style={{ fontSize: '1.3rem', fontWeight: 700 }}>Update Driver Status</h2>
-                                <button onClick={() => setShowStatusModal(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-dim)' }}><X size={20} /></button>
+                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="modal" style={{ maxWidth: 360 }}>
+                            <div className="flex-between mb-2">
+                                <h3 style={{ fontWeight: 800, color: 'var(--text-main)' }}>Adjust Duty Status</h3>
+                                <button onClick={() => setShowStatusModal(null)} className="btn-ghost" style={{ border: 'none' }}><X size={18} /></button>
                             </div>
                             <form onSubmit={handleUpdateStatus}>
-                                <div className="form-group"><label>New Duty Status</label>
-                                    <select value={newStatus} onChange={e => setNewStatus(e.target.value)} style={{ paddingLeft: '1rem' }}>
-                                        <option value="On Duty">On Duty</option>
-                                        <option value="Taking a Break">Taking a Break</option>
-                                        <option value="Suspended">Suspended</option>
-                                    </select>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
+                                    {Object.keys(STATUS_CONFIG).map(s => (
+                                        <div key={s} onClick={() => setNewStatus(s)} style={{
+                                            padding: '12px 16px', borderRadius: 12, border: '1.5px solid', cursor: 'pointer',
+                                            borderColor: newStatus === s ? STATUS_CONFIG[s].color : 'var(--border)',
+                                            background: newStatus === s ? STATUS_CONFIG[s].bg : 'var(--bg-input)',
+                                            color: newStatus === s ? STATUS_CONFIG[s].color : 'var(--text-sub)',
+                                            fontWeight: 700, transition: 'all 0.15s'
+                                        }}>
+                                            {s}
+                                        </div>
+                                    ))}
                                 </div>
-                                <button type="submit" className="btn-primary">Update Status</button>
+                                <button type="submit" className="btn-primary" style={{ marginTop: 0 }}>Confirm Status Update</button>
                             </form>
                         </motion.div>
                     </div>

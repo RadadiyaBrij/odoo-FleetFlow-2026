@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { useAuth } from './context/AuthContext.jsx';
-import Sidebar from './components/Sidebar.jsx';
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
 import Dashboard from './pages/Dashboard.jsx';
@@ -12,6 +11,9 @@ import Maintenance from './pages/Maintenance.jsx';
 import Expenses from './pages/Expenses.jsx';
 import Performance from './pages/Performance.jsx';
 import Analytics from './pages/Analytics.jsx';
+import ForgotPassword from './pages/ForgotPassword.jsx';
+import ResetPassword from './pages/ResetPassword.jsx';
+import VerifyEmail from './pages/VerifyEmail.jsx';
 
 function ProtectedRoute({ children }) {
   const { token } = useAuth();
@@ -31,11 +33,19 @@ function RoleRoute({ page, children }) {
   return children;
 }
 
+import Sidebar from './components/Sidebar.jsx';
+import Navbar from './components/Navbar.jsx';
+
 function Layout({ children }) {
   return (
     <div className="app-layout">
       <Sidebar />
-      <main className="main-content">{children}</main>
+      <div className="layout-wrapper">
+        <Navbar />
+        <main className="main-content">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }
@@ -49,6 +59,9 @@ export default function App() {
       <Routes>
         <Route path="/login" element={token ? <Navigate to="/dashboard" replace /> : <Login />} />
         <Route path="/register" element={token ? <Navigate to="/dashboard" replace /> : <Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
         <Route path="/dashboard" element={<ProtectedRoute><Layout><RoleRoute page="dashboard"><Dashboard /></RoleRoute></Layout></ProtectedRoute>} />
