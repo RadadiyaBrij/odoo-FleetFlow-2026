@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-    Menu, Home, BarChart2, LayoutGrid, ShieldCheck,
-    Bell, Settings, HelpCircle, Sun, Moon, LogOut, Search,
+    Menu, Home, BarChart2,
+    Sun, Moon, LogOut,
     Truck, Users, Map, Wrench, DollarSign, Activity
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -103,8 +103,6 @@ export default function Navbar({ expanded, setExpanded }) {
                     label={isLight ? "Dark Mode" : "Light Mode"}
                     onClick={toggleTheme}
                 />
-                <MenuItem icon={Bell} label="Notifications" />
-                <MenuItem icon={Settings} label="Settings" />
 
                 {/* User Profile */}
                 <div className="user-profile" onClick={() => expanded ? null : setExpanded(true)}>
