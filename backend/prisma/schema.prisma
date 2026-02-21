@@ -16,6 +16,12 @@ model User {
   role         Role     @default(DISPATCHER)
   status       String   @default("Active")
   
+  isEmailVerified      Boolean   @default(false)
+  emailVerifyToken     String?
+  emailVerifyExpiry    DateTime?
+  resetPasswordToken   String?
+  resetPasswordExpiry  DateTime?
+
   createdDate  DateTime @default(now())
   lastLogin    DateTime?
   updatedAt    DateTime @updatedAt

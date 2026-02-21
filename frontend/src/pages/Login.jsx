@@ -88,11 +88,14 @@ export default function Login() {
                                 </button>
                             </div>
                         </div>
-                        <Route path="/forgot-password" element={<ForgotPassword />} />
-                        <Route path="/reset-password" element={<ResetPassword />} />
-                        <Route path="/verify-email" element={<VerifyEmail />} />
 
-                        <button type="submit" className="btn-primary" disabled={loading} style={{ marginTop: '1.5rem' }}>
+                        <div style={{ textAlign: 'right', marginTop: '0.4rem', marginBottom: '1.5rem' }}>
+                            <Link to="/forgot-password" style={{ fontSize: '0.85rem', color: '#F5BF00', textDecoration: 'none', fontWeight: 600 }}>
+                                Forgot Password?
+                            </Link>
+                        </div>
+
+                        <button type="submit" className="btn-primary" disabled={loading}>
                             {loading ? 'Authenticating…' : 'Sign In to Dashboard'}
                         </button>
                     </form>
