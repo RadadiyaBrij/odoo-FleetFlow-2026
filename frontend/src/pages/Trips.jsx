@@ -18,7 +18,7 @@ export default function Trips() {
     const [vehicles, setVehicles] = useState([]);
     const [drivers, setDrivers] = useState([]);
     const [showModal, setShowModal] = useState(false);
-    const [form, setForm] = useState({ vehicleId: '', driverId: '', originAddress: '', destinationAddress: '', cargoDescription: '', cargoWeightKg: '', estimatedFuelCost: '' });
+    const [form, setForm] = useState({ vehicleId: '', driverId: '', originAddress: '', destinationAddress: '', cargoDescription: '', cargoWeightKg: '', estimatedFuelCost: '', revenue: '' });
 
     const fetchAll = async () => {
         try {
@@ -49,7 +49,7 @@ export default function Trips() {
         try {
             await api.post('/trips', form);
             setShowModal(false);
-            setForm({ vehicleId: '', driverId: '', originAddress: '', destinationAddress: '', cargoDescription: '', cargoWeightKg: '', estimatedFuelCost: '' });
+            setForm({ vehicleId: '', driverId: '', originAddress: '', destinationAddress: '', cargoDescription: '', cargoWeightKg: '', estimatedFuelCost: '', revenue: '' });
             fetchAll();
             toast.success('Route mapped');
         }
@@ -142,9 +142,12 @@ export default function Trips() {
                                 </div>
                                 <div className="grid-2">
                                     <div className="form-group"><label>Weight (kg)</label><input type="number" required value={form.cargoWeightKg} onChange={e => setForm({ ...form, cargoWeightKg: Number(e.target.value) })} /></div>
-                                    <div className="form-group"><label>Fuel Budget ($)</label><input type="number" required value={form.estimatedFuelCost} onChange={e => setForm({ ...form, estimatedFuelCost: Number(e.target.value) })} /></div>
+                                    <div className="form-group"><label>Revenue ($)</label><input type="number" required value={form.revenue} onChange={e => setForm({ ...form, revenue: Number(e.target.value) })} /></div>
                                 </div>
-                                <div className="form-group"><label>Cargo Ref</label><input value={form.cargoDescription} onChange={e => setForm({ ...form, cargoDescription: e.target.value })} /></div>
+                                <div className="grid-2">
+                                    <div className="form-group"><label>Fuel Budget ($)</label><input type="number" required value={form.estimatedFuelCost} onChange={e => setForm({ ...form, estimatedFuelCost: Number(e.target.value) })} /></div>
+                                    <div className="form-group"><label>Cargo Ref</label><input value={form.cargoDescription} onChange={e => setForm({ ...form, cargoDescription: e.target.value })} /></div>
+                                </div>
                                 <button type="submit" className="btn-primary">Execute Route Plan</button>
                             </form>
                         </motion.div>

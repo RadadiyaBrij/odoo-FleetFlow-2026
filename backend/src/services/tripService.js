@@ -79,7 +79,7 @@ export const tripService = {
       throw error;
     }
 
-    const { vehicleId, driverId, cargoWeightKg, originAddress, destinationAddress, estimatedFuelCost, cargoDescription, tripNumber } = tripData;
+    const { vehicleId, driverId, cargoWeightKg, originAddress, destinationAddress, estimatedFuelCost, cargoDescription, tripNumber, revenue } = tripData;
 
     return prisma.trip.create({
       data: {
@@ -90,6 +90,7 @@ export const tripService = {
         originAddress: originAddress || 'Main Hub',
         destinationAddress: destinationAddress || 'Delivery Point',
         estimatedFuelCost: parseFloat(estimatedFuelCost) || 0,
+        revenue: parseFloat(revenue) || 0,
         status: 'Draft'
       }
     });

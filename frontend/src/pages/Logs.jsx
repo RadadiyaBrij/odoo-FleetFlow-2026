@@ -11,19 +11,22 @@ export default function Logs({ type }) {
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
 
-    const emptyFuelForm = { vehicleId: '', amount: '', quantity: '', expenseDate: new Date().toISOString().split('T')[0], notes: '', expenseType: 'Fuel' };
+    const emptyFuelForm = { vehicleId: '', amount: '', quantity: '', tripId: '', expenseDate: new Date().toISOString().split('T')[0], notes: '', expenseType: 'Fuel' };
     const emptyServiceForm = { vehicleId: '', issueType: '', description: '', cost: '', serviceDate: new Date().toISOString().split('T')[0] };
     const [form, setForm] = useState(isFuel ? emptyFuelForm : emptyServiceForm);
+    const [trips, setTrips] = useState([]);
 
     const fetchLogs = async () => {
         try {
             const url = isFuel ? '/expenses?expenseType=Fuel' : '/maintenance';
-            const [logsRes, vehiclesRes] = await Promise.all([
+            const [logsRes, vehiclesRes, tripsRes] = await Promise.all([
                 api.get(url),
-                api.get('/vehicles')
+                api.get('/vehicles'),
+                api.get('/trips?status=Completed')
             ]);
             setLogs(logsRes.data);
             setVehicles(vehiclesRes.data);
+            setTrips(tripsRes.data);
         } catch (err) {
             toast.error('Failed to load data');
         } finally {
@@ -97,8 +100,14 @@ export default function Logs({ type }) {
                                     {isFuel ? (
                                         <>
                                             <td>{log.quantity} L</td>
-                                            <td><strong style={{ color: 'var(--success)' }}>${log.amount}</strong></td>
-                                            <td>{log.vehicle?.currentOdometer > 0 ? (log.vehicle.currentOdometer / log.quantity).toFixed(2) + ' km/L' : '--'}</td>
+                                            <td><strong style={{ color: 'var(--success)' }}>₹{log.amount}</strong></td>
+                                            <td>
+                                                {log.trip && log.trip.endOdometer && log.trip.startOdometer ? (
+                                                    ((log.trip.endOdometer - log.trip.startOdometer) / log.quantity).toFixed(2) + ' km/L'
+                                                ) : log.vehicle?.currentOdometer > 0 ? (
+                                                    (log.vehicle.currentOdometer / log.quantity).toFixed(1) + ' km/L*'
+                                                ) : '--'}
+                                            </td>
                                         </>
                                     ) : (
                                         <>
@@ -141,6 +150,18 @@ export default function Logs({ type }) {
                                         {vehicles.map(v => <option key={v.id} value={v.id}>{v.name} ({v.licensePlate})</option>)}
                                     </select>
                                 </div>
+
+                                {isFuel && (
+                                    <div className="form-group">
+                                        <label>Associated Trip (Required for KM/L Accuracy)</label>
+                                        <select value={form.tripId} onChange={e => setForm({ ...form, tripId: e.target.value })}>
+                                            <option value="">Select trip</option>
+                                            {trips.filter(t => t.vehicleId === parseInt(form.vehicleId)).map(t => (
+                                                <option key={t.id} value={t.id}>{t.originAddress} ➜ {t.destinationAddress} ({new Date(t.tripStartTime).toLocaleDateString()})</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
 
                                 <div className="grid-2">
                                     <div className="form-group">

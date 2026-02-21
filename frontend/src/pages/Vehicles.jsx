@@ -81,9 +81,17 @@ export default function Vehicles() {
                                     }}>{v.status}</span>
                                 </td>
                                 {can.manage.vehicles && (
-                                    <td>
+                                    <td style={{ display: 'flex', gap: 8 }}>
                                         <button onClick={async () => { if (confirm('Remove?')) { await api.delete(`/vehicles/${v.id}`); fetchVehicles(); } }} className="btn-ghost" style={{ padding: 6, color: '#EF4444', borderColor: '#EF444430' }}>
                                             <Trash2 size={13} />
+                                        </button>
+                                        <button
+                                            onClick={async () => { await api.patch(`/vehicles/${v.id}/retire`); fetchVehicles(); toast.success('Status updated'); }}
+                                            className="btn-ghost"
+                                            style={{ padding: 6, color: v.status === 'Out of Service' ? '#22C55E' : '#F97316', borderColor: v.status === 'Out of Service' ? '#22C55E30' : '#F9731630' }}
+                                            title={v.status === 'Out of Service' ? "Return to Service" : "Retire Asset"}
+                                        >
+                                            <Plus size={13} style={{ transform: v.status === 'Out of Service' ? 'none' : 'rotate(45deg)' }} />
                                         </button>
                                     </td>
                                 )}
@@ -111,7 +119,10 @@ export default function Vehicles() {
                                     </div>
                                     <div className="form-group"><label>Model Ref</label><input value={form.model} onChange={e => setForm({ ...form, model: e.target.value })} /></div>
                                 </div>
-                                <div className="form-group"><label>Capacity (kg)</label><input type="number" value={form.maxCapacityKg} onChange={e => setForm({ ...form, maxCapacityKg: Number(e.target.value) })} /></div>
+                                <div className="grid-2">
+                                    <div className="form-group"><label>Capacity (kg)</label><input type="number" value={form.maxCapacityKg} onChange={e => setForm({ ...form, maxCapacityKg: Number(e.target.value) })} /></div>
+                                    <div className="form-group"><label>Acquisition Cost ($)</label><input type="number" required value={form.acquisitionCost} onChange={e => setForm({ ...form, acquisitionCost: Number(e.target.value) })} /></div>
+                                </div>
                                 <button type="submit" className="btn-primary">Save to Inventory</button>
                             </form>
                         </motion.div>

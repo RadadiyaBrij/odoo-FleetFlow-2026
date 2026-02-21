@@ -70,5 +70,17 @@ export const vehicleService = {
     }
 
     return prisma.vehicle.delete({ where: { id: parseInt(id) } });
+  },
+
+  // Manual toggle for "Out of Service" (Retired)
+  toggleRetireStatus: async (id) => {
+    const vehicle = await prisma.vehicle.findUnique({ where: { id: parseInt(id) } });
+    if (!vehicle) throw new Error('Vehicle not found');
+
+    const newStatus = vehicle.status === 'Out of Service' ? 'Available' : 'Out of Service';
+    return prisma.vehicle.update({
+      where: { id: parseInt(id) },
+      data: { status: newStatus }
+    });
   }
 };

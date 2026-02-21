@@ -89,10 +89,10 @@ export default function Analytics() {
             {(role === 'MANAGER' || role === 'ANALYST') && (
                 <>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
-                        <StatPill label="Total Fuel" value={`₹${(data.totalFuelCost || 0).toLocaleString()}`} color="#F5BF00" icon={<DollarSign size={12} />} />
-                        <StatPill label="Estimated ROI" value={`+${data.fleetROI || 0}%`} color="#22C55E" icon={<TrendingUp size={12} />} />
-                        <StatPill label="Util. Rate" value={`${data.utilizationRate || 0}%`} color="#38BDF8" icon={<Activity size={12} />} />
-                        <StatPill label="Gross Expenses" value={`₹${(data.totalExpenses || 0).toLocaleString()}`} color="#A78BFA" icon={<DollarSign size={12} />} />
+                        <StatPill label="Fleet Revenue" value={`₹${(data.totalRevenue || 0).toLocaleString()}`} color="#22C55E" icon={<TrendingUp size={12} />} />
+                        <StatPill label="Operational Cost" value={`₹${(data.totalOperationalCost || 0).toLocaleString()}`} color="#F97316" icon={<Activity size={12} />} />
+                        <StatPill label="Advanced ROI" value={`${data.fleetROI || 0}%`} color="#38BDF8" icon={<TrendingUp size={12} />} />
+                        <StatPill label="Net Expenses" value={`₹${(data.totalExpenses || 0).toLocaleString()}`} color="#A78BFA" icon={<DollarSign size={12} />} />
                     </div>
 
                     {monthlySummary.length > 0 && (

@@ -37,12 +37,21 @@ export const analyticsService = {
   // Financial KPIs — Analyst
   getFinancialKPI: async () => {
     const expenses = await prisma.expense.findMany();
+    const trips = await prisma.trip.findMany({ where: { status: 'Completed' } });
+    const vehicles = await prisma.vehicle.findMany();
+
+    const totalRevenue = trips.reduce((s, t) => s + t.revenue, 0);
     const totalFuelCost = expenses.filter(e => e.expenseType === 'Fuel').reduce((s, e) => s + e.amount, 0);
-    const totalMaintenanceCost = expenses.filter(e => e.expenseType === 'Maintenance').reduce((s, e) => s + e.amount, 0);
-    const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
-    const totalVehicles = await prisma.vehicle.count();
-    const activeFleet = await prisma.vehicle.count({ where: { status: 'On Trip' } });
-    const utilizationRate = totalVehicles > 0 ? (activeFleet / totalVehicles) * 100 : 0;
+    const totalMaintenanceCost = expenses.filter(e => e.expenseType === 'Maintenance' || e.expenseType === 'Repair').reduce((s, e) => s + e.amount, 0);
+    const totalOperationalCost = totalFuelCost + totalMaintenanceCost;
+
+    // Advanced ROI: (Revenue - OpCost) / AcquisitionCost
+    const totalAcquisitionCost = vehicles.reduce((s, v) => s + (v.acquisitionCost || 0), 0);
+    const fleetROI = totalAcquisitionCost > 0 ? ((totalRevenue - totalOperationalCost) / totalAcquisitionCost) * 100 : 0;
+
+    const totalVehicles = vehicles.length;
+    const activeFleetCount = vehicles.filter(v => v.status === 'On Trip').length;
+    const utilizationRate = totalVehicles > 0 ? (activeFleetCount / totalVehicles) * 100 : 0;
 
     const sixMonthsAgo = new Date();
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
@@ -53,22 +62,32 @@ export const analyticsService = {
       if (!monthlyMap[key]) monthlyMap[key] = { month: key, fuelCost: 0, maintenanceCost: 0, total: 0 };
       monthlyMap[key].total += e.amount;
       if (e.expenseType === 'Fuel') monthlyMap[key].fuelCost += e.amount;
-      if (e.expenseType === 'Maintenance') monthlyMap[key].maintenanceCost += e.amount;
+      if (e.expenseType === 'Maintenance' || e.expenseType === 'Repair') monthlyMap[key].maintenanceCost += e.amount;
     });
 
     const vehicleExpenses = await prisma.vehicle.findMany({ include: { expenses: true }, take: 20 });
-    const vehicleCosts = vehicleExpenses.map(v => ({
-      name: v.name, plate: v.licensePlate, totalCost: v.expenses.reduce((s, e) => s + e.amount, 0)
-    })).sort((a, b) => b.totalCost - a.totalCost).slice(0, 5);
+    const vehicleCosts = vehicleExpenses.map(v => {
+      const fuel = v.expenses.filter(e => e.expenseType === 'Fuel').reduce((s, e) => s + e.amount, 0);
+      const maint = v.expenses.filter(e => e.expenseType === 'Maintenance' || e.expenseType === 'Repair').reduce((s, e) => s + e.amount, 0);
+      return {
+        name: v.name,
+        plate: v.licensePlate,
+        totalCost: fuel + maint,
+        fuel,
+        maint
+      };
+    }).sort((a, b) => b.totalCost - a.totalCost).slice(0, 5);
 
-    const completedTrips = await prisma.trip.count({ where: { status: 'Completed' } });
+    const completedTripsCount = trips.length;
     return {
+      totalRevenue: Math.round(totalRevenue),
       totalFuelCost: Math.round(totalFuelCost),
       totalMaintenanceCost: Math.round(totalMaintenanceCost),
-      totalExpenses: Math.round(totalExpenses),
+      totalOperationalCost: Math.round(totalOperationalCost),
+      totalExpenses: Math.round(expenses.reduce((s, e) => s + e.amount, 0)),
       utilizationRate: Math.round(utilizationRate * 10) / 10,
-      fleetROI: Math.round(utilizationRate * 0.125 * 10) / 10,
-      fuelEfficiency: completedTrips > 0 ? Math.round(totalFuelCost / completedTrips) : 0,
+      fleetROI: Math.round(fleetROI * 10) / 10,
+      fuelEfficiency: completedTripsCount > 0 ? Math.round(totalFuelCost / completedTripsCount) : 0,
       monthlySummary: Object.values(monthlyMap),
       vehicleCosts
     };

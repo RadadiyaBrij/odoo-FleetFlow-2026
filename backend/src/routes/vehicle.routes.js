@@ -44,4 +44,12 @@ router.delete('/:id', roleMiddleware(['MANAGER']), async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
+// Toggle "Out of Service" status
+router.patch('/:id/retire', roleMiddleware(['MANAGER']), async (req, res, next) => {
+  try {
+    const vehicle = await vehicleService.toggleRetireStatus(req.params.id);
+    res.json(vehicle);
+  } catch (error) { next(error); }
+});
+
 export default router;
