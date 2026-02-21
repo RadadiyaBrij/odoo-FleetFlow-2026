@@ -8,6 +8,8 @@ import vehicleRoutes from './routes/vehicle.routes.js';
 import tripRoutes from './routes/trip.routes.js';
 import driverRoutes from './routes/driver.routes.js';
 import analyticsRoutes from './routes/analytics.routes.js';
+import maintenanceRoutes from './routes/maintenance.routes.js';
+import expenseRoutes from './routes/expense.routes.js';
 import errorHandler from './middleware/errorHandler.js';
 import { authMiddleware } from './middleware/auth.middleware.js';
 
@@ -32,6 +34,8 @@ app.use('/api/vehicles', authMiddleware, vehicleRoutes);
 app.use('/api/trips', authMiddleware, tripRoutes);
 app.use('/api/drivers', authMiddleware, driverRoutes);
 app.use('/api/analytics', authMiddleware, analyticsRoutes);
+app.use('/api/maintenance', authMiddleware, maintenanceRoutes);
+app.use('/api/expenses', authMiddleware, expenseRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

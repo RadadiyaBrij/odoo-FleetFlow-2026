@@ -36,6 +36,17 @@ export const tripService = {
       errors.push('Driver not found');
       return { isValid: false, errors };
     }
+
+    // Check license category (Simplified: Trucks need HMV, Vans/Bikes can use LMV)
+    const needsHMV = vehicle.vehicleType === 'Truck';
+    const hasHMV = driver.licenseCategory.includes('HMV');
+    const hasLMV = driver.licenseCategory.includes('LMV');
+
+    if (needsHMV && !hasHMV) {
+      errors.push('Driver requires HMV license for this truck');
+    } else if (!needsHMV && !hasLMV && !hasHMV) {
+      errors.push('Driver requires a valid license for this vehicle');
+    }
     
     // Check driver status
     if (driver.status === 'Suspended') {
