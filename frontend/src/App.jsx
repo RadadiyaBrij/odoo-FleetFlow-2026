@@ -33,15 +33,22 @@ function RoleRoute({ page, children }) {
   return children;
 }
 
+import { useState } from 'react';
 import Sidebar from './components/Sidebar.jsx';
 import Navbar from './components/Navbar.jsx';
 
 function Layout({ children }) {
+  const [navExpanded, setNavExpanded] = useState(false);
+
   return (
     <div className="app-layout">
-      <Sidebar />
-      <div className="layout-wrapper">
-        <Navbar />
+      {/* Navbar is now the vertical sidebar as per design */}
+      <Navbar expanded={navExpanded} setExpanded={setNavExpanded} />
+
+      {/* Old Sidebar removed as Navbar now contains all navigation items */}
+      {/* <Sidebar /> */}
+
+      <div className={`layout-wrapper ${navExpanded ? 'shifted' : ''}`}>
         <main className="main-content">
           {children}
         </main>
