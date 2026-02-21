@@ -1,63 +1,51 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from '../lib/prisma.js';
 
-const prisma = new PrismaClient();
 
 export const tripService = {
   // Validate trip creation
   validateTrip: async (tripData) => {
     const errors = [];
-    
+
     // Get vehicle
     const vehicle = await prisma.vehicle.findUnique({
       where: { id: parseInt(tripData.vehicleId) }
     });
-    
+
     if (!vehicle) {
       errors.push('Vehicle not found');
       return { isValid: false, errors };
     }
-    
+
     // Check capacity
     if (parseFloat(tripData.cargoWeightKg) > vehicle.maxCapacityKg) {
       errors.push(`Cargo weight (${tripData.cargoWeightKg}kg) exceeds vehicle capacity (${vehicle.maxCapacityKg}kg)`);
     }
-    
+
     // Check vehicle availability
     if (vehicle.status !== 'Available') {
       errors.push(`Vehicle is ${vehicle.status}`);
     }
-    
+
     // Get driver
     const driver = await prisma.driver.findUnique({
       where: { id: parseInt(tripData.driverId) }
     });
-    
+
     if (!driver) {
       errors.push('Driver not found');
       return { isValid: false, errors };
     }
 
-    // Check license category (Simplified: Trucks need HMV, Vans/Bikes can use LMV)
-    const needsHMV = vehicle.vehicleType === 'Truck';
-    const hasHMV = driver.licenseCategory.includes('HMV');
-    const hasLMV = driver.licenseCategory.includes('LMV');
-
-    if (needsHMV && !hasHMV) {
-      errors.push('Driver requires HMV license for this truck');
-    } else if (!needsHMV && !hasLMV && !hasHMV) {
-      errors.push('Driver requires a valid license for this vehicle');
-    }
-    
     // Check driver status
     if (driver.status === 'Suspended') {
       errors.push('Driver is suspended');
     }
-    
+
     // Check license expiry
     if (new Date(driver.licenseExpiryDate) < new Date()) {
       errors.push('Driver license has expired');
     }
-    
+
     return {
       isValid: errors.length === 0,
       errors,
@@ -69,13 +57,13 @@ export const tripService = {
   // Create trip
   createTrip: async (tripData) => {
     const validation = await tripService.validateTrip(tripData);
-    
+
     if (!validation.isValid) {
       const error = new Error(validation.errors.join(', '));
       error.status = 400;
       throw error;
     }
-    
+
     return prisma.trip.create({
       data: {
         ...tripData,
@@ -93,9 +81,9 @@ export const tripService = {
       where: { id: parseInt(tripId) },
       include: { vehicle: true, driver: true }
     });
-    
+
     if (!trip) throw new Error('Trip not found');
-    
+
     // Update trip status
     const updatedTrip = await prisma.trip.update({
       where: { id: parseInt(tripId) },
@@ -105,19 +93,19 @@ export const tripService = {
         tripStartTime: new Date()
       }
     });
-    
+
     // Update vehicle status
     await prisma.vehicle.update({
       where: { id: trip.vehicleId },
       data: { status: 'On Trip' }
     });
-    
+
     // Update driver status
     await prisma.driver.update({
       where: { id: trip.driverId },
       data: { status: 'On Duty' }
     });
-    
+
     return updatedTrip;
   },
 
@@ -127,9 +115,9 @@ export const tripService = {
       where: { id: parseInt(tripId) },
       include: { vehicle: true, driver: true }
     });
-    
+
     if (!trip) throw new Error('Trip not found');
-    
+
     // Update trip
     const updatedTrip = await prisma.trip.update({
       where: { id: parseInt(tripId) },
@@ -139,7 +127,7 @@ export const tripService = {
         tripEndTime: new Date()
       }
     });
-    
+
     // Update vehicle
     await prisma.vehicle.update({
       where: { id: trip.vehicleId },
@@ -148,7 +136,7 @@ export const tripService = {
         currentOdometer: parseFloat(endOdometer)
       }
     });
-    
+
     // Update driver
     await prisma.driver.update({
       where: { id: trip.driverId },
@@ -157,14 +145,14 @@ export const tripService = {
         tripsCompleted: { increment: 1 }
       }
     });
-    
+
     return updatedTrip;
   },
 
   getTrips: async (filters = {}) => {
     const where = {};
     if (filters.status) where.status = filters.status;
-    
+
     return prisma.trip.findMany({
       where,
       include: {

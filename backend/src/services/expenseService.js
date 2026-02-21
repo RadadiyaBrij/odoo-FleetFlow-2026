@@ -1,13 +1,12 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from '../lib/prisma.js';
 
-const prisma = new PrismaClient();
 
 export const expenseService = {
   getExpenses: async (filters = {}) => {
     const where = {};
     if (filters.vehicleId) where.vehicleId = parseInt(filters.vehicleId);
     if (filters.expenseType) where.expenseType = filters.expenseType;
-    
+
     return prisma.expense.findMany({
       where,
       include: {
@@ -35,11 +34,11 @@ export const expenseService = {
     const expenses = await prisma.expense.findMany({
       where: { vehicleId: parseInt(vehicleId) }
     });
-    
+
     const total = expenses.reduce((sum, exp) => sum + exp.amount, 0);
     const fuel = expenses.filter(e => e.expenseType === 'Fuel').reduce((sum, exp) => sum + exp.amount, 0);
     const maintenance = expenses.filter(e => e.expenseType === 'Maintenance').reduce((sum, exp) => sum + exp.amount, 0);
-    
+
     return {
       total,
       fuel,

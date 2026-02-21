@@ -1,12 +1,11 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from '../lib/prisma.js';
 
-const prisma = new PrismaClient();
 
 export const driverService = {
   getDrivers: async (filters = {}) => {
     const where = {};
     if (filters.status) where.status = filters.status;
-    
+
     return prisma.driver.findMany({
       where,
       orderBy: { createdDate: 'desc' }
@@ -34,7 +33,7 @@ export const driverService = {
   updateDriver: async (id, driverData) => {
     const data = { ...driverData };
     if (data.licenseExpiryDate) data.licenseExpiryDate = new Date(data.licenseExpiryDate);
-    
+
     return prisma.driver.update({
       where: { id: parseInt(id) },
       data
@@ -43,16 +42,16 @@ export const driverService = {
 
   deleteDriver: async (id) => {
     const activeTrips = await prisma.trip.count({
-      where: { 
-        driverId: parseInt(id), 
-        status: { in: ['Draft', 'Dispatched'] } 
+      where: {
+        driverId: parseInt(id),
+        status: { in: ['Draft', 'Dispatched'] }
       }
     });
-    
+
     if (activeTrips > 0) {
       throw new Error('Cannot delete driver with active trips');
     }
-    
+
     return prisma.driver.delete({ where: { id: parseInt(id) } });
   }
 };

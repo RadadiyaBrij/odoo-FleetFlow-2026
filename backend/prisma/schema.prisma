@@ -4,7 +4,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -22,8 +21,8 @@ model User {
   updatedAt    DateTime @updatedAt
   
   vehicles      Vehicle[]
-  createdTrips  Trip[]
   notifications Notification[]
+
   
   @@index([email])
   @@index([role])

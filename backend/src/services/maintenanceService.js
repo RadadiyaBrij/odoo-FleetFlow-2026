@@ -1,13 +1,12 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from '../lib/prisma.js';
 
-const prisma = new PrismaClient();
 
 export const maintenanceService = {
   getMaintenanceLogs: async (filters = {}) => {
     const where = {};
     if (filters.status) where.status = filters.status;
     if (filters.vehicleId) where.vehicleId = parseInt(filters.vehicleId);
-    
+
     return prisma.maintenanceLog.findMany({
       where,
       include: {

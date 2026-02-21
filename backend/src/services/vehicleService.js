@@ -1,6 +1,5 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from '../lib/prisma.js';
 
-const prisma = new PrismaClient();
 
 export const vehicleService = {
   // Get all vehicles with filters
@@ -8,7 +7,7 @@ export const vehicleService = {
     const where = {};
     if (filters.status) where.status = filters.status;
     if (filters.vehicleType) where.vehicleType = filters.vehicleType;
-    
+
     return prisma.vehicle.findMany({
       where,
       include: { createdBy: { select: { username: true } } },
@@ -51,16 +50,16 @@ export const vehicleService = {
   deleteVehicle: async (id) => {
     // Check if vehicle has active trips
     const activeTrips = await prisma.trip.count({
-      where: { 
-        vehicleId: parseInt(id), 
-        status: { in: ['Draft', 'Dispatched'] } 
+      where: {
+        vehicleId: parseInt(id),
+        status: { in: ['Draft', 'Dispatched'] }
       }
     });
-    
+
     if (activeTrips > 0) {
       throw new Error('Cannot delete vehicle with active trips');
     }
-    
+
     return prisma.vehicle.delete({ where: { id: parseInt(id) } });
   }
 };
