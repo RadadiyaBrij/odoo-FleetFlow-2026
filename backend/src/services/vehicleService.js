@@ -30,10 +30,17 @@ export const vehicleService = {
 
   // Add new vehicle
   addVehicle: async (vehicleData, userId) => {
+    const { name, licensePlate, vehicleType, model, maxCapacityKg, acquisitionCost, currentOdometer } = vehicleData;
     try {
       return await prisma.vehicle.create({
         data: {
-          ...vehicleData,
+          name,
+          licensePlate,
+          vehicleType,
+          model,
+          maxCapacityKg: parseFloat(maxCapacityKg) || 0,
+          acquisitionCost: parseFloat(acquisitionCost) || 0,
+          currentOdometer: parseFloat(currentOdometer) || 0,
           createdById: userId
         }
       });

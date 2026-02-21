@@ -12,32 +12,32 @@ router.get('/', roleMiddleware(['MANAGER', 'DISPATCHER', 'SAFETY_OFFICER']), asy
   } catch (error) { next(error); }
 });
 
-// Only DISPATCHER can create trips
-router.post('/', roleMiddleware(['DISPATCHER']), async (req, res, next) => {
+// MANAGER and DISPATCHER can create trips
+router.post('/', roleMiddleware(['MANAGER', 'DISPATCHER']), async (req, res, next) => {
   try {
     const trip = await tripService.createTrip(req.body);
     res.status(201).json(trip);
   } catch (error) { next(error); }
 });
 
-// Only DISPATCHER can dispatch trips
-router.patch('/:id/dispatch', roleMiddleware(['DISPATCHER']), async (req, res, next) => {
+// MANAGER and DISPATCHER can dispatch trips
+router.patch('/:id/dispatch', roleMiddleware(['MANAGER', 'DISPATCHER']), async (req, res, next) => {
   try {
     const trip = await tripService.dispatchTrip(req.params.id, req.body.startOdometer);
     res.json(trip);
   } catch (error) { next(error); }
 });
 
-// Only DISPATCHER can complete trips
-router.patch('/:id/complete', roleMiddleware(['DISPATCHER']), async (req, res, next) => {
+// MANAGER and DISPATCHER can complete trips
+router.patch('/:id/complete', roleMiddleware(['MANAGER', 'DISPATCHER']), async (req, res, next) => {
   try {
     const trip = await tripService.completeTrip(req.params.id, req.body.endOdometer);
     res.json(trip);
   } catch (error) { next(error); }
 });
 
-// Only DISPATCHER can cancel trips
-router.patch('/:id/cancel', roleMiddleware(['DISPATCHER']), async (req, res, next) => {
+// MANAGER and DISPATCHER can cancel trips
+router.patch('/:id/cancel', roleMiddleware(['MANAGER', 'DISPATCHER']), async (req, res, next) => {
   try {
     const trip = await tripService.cancelTrip(req.params.id);
     res.json(trip);

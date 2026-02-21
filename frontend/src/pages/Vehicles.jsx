@@ -17,11 +17,11 @@ export default function Vehicles() {
     const [vehicles, setVehicles] = useState([]);
     const [showModal, setShowModal] = useState(false);
     const [search, setSearch] = useState('');
-    const [form, setForm] = useState({ name: '', licensePlate: '', vehicleType: 'Truck', model: '', maxCapacityKg: '', acquisitionCost: '' });
+    const [form, setForm] = useState({ name: '', licensePlate: '', vehicleType: 'Truck', model: '', maxCapacityKg: '', acquisitionCost: '', currentOdometer: '' });
 
     const fetchVehicles = async () => {
         try { const { data } = await api.get('/vehicles'); setVehicles(data); }
-        catch { toast.error('Failed to load fleet'); }
+        catch { toast.error('Failed to load fleet intelligence'); }
     };
     useEffect(() => { fetchVehicles(); }, []);
 
@@ -36,7 +36,7 @@ export default function Vehicles() {
             await api.post('/vehicles', form);
             toast.success('Asset added to registry');
             setShowModal(false);
-            setForm({ name: '', licensePlate: '', vehicleType: 'Truck', model: '', maxCapacityKg: '', acquisitionCost: '' });
+            setForm({ name: '', licensePlate: '', vehicleType: 'Truck', model: '', maxCapacityKg: '', acquisitionCost: '', currentOdometer: '' });
             fetchVehicles();
         } catch (err) {
             toast.error(err.response?.data?.error?.message || err.response?.data?.message || 'Check details and retry');
@@ -65,7 +65,7 @@ export default function Vehicles() {
 
             <div className="table-wrapper">
                 <table>
-                    <thead><tr><th>Asset Name</th><th>Type</th><th>Plate</th><th>Capacity</th><th>Status</th>{can.manage.vehicles && <th>Action</th>}</tr></thead>
+                    <thead><tr><th>Asset Name</th><th>Type</th><th>Plate</th><th>Capacity</th><th>Mileage</th><th>Status</th>{can.manage.vehicles && <th>Action</th>}</tr></thead>
                     <tbody>
                         {filtered.map(v => (
                             <tr key={v.id}>
@@ -73,6 +73,7 @@ export default function Vehicles() {
                                 <td><span className="badge" style={{ background: 'var(--accent-dim)', color: 'var(--accent)', border: '1px solid var(--accent-glow)' }}>{v.vehicleType}</span></td>
                                 <td style={{ fontFamily: 'JetBrains Mono, monospace', color: 'var(--text-sub)' }}>{v.licensePlate}</td>
                                 <td style={{ color: 'var(--text-sub)' }}>{v.maxCapacityKg} kg</td>
+                                <td style={{ color: 'var(--text-dim)', fontSize: '0.85rem' }}>{v.currentOdometer?.toLocaleString() || 0} km</td>
                                 <td>
                                     <span className="badge" style={{
                                         background: `${STATUS_CONFIG[v.status]?.color}15`,
@@ -121,8 +122,9 @@ export default function Vehicles() {
                                 </div>
                                 <div className="grid-2">
                                     <div className="form-group"><label>Capacity (kg)</label><input type="number" value={form.maxCapacityKg} onChange={e => setForm({ ...form, maxCapacityKg: Number(e.target.value) })} /></div>
-                                    <div className="form-group"><label>Acquisition Cost ($)</label><input type="number" required value={form.acquisitionCost} onChange={e => setForm({ ...form, acquisitionCost: Number(e.target.value) })} /></div>
+                                    <div className="form-group"><label>Odometer (km)</label><input type="number" required value={form.currentOdometer} onChange={e => setForm({ ...form, currentOdometer: Number(e.target.value) })} /></div>
                                 </div>
+                                <div className="form-group"><label>Acquisition Cost ($)</label><input type="number" required value={form.acquisitionCost} onChange={e => setForm({ ...form, acquisitionCost: Number(e.target.value) })} /></div>
                                 <button type="submit" className="btn-primary">Save to Inventory</button>
                             </form>
                         </motion.div>

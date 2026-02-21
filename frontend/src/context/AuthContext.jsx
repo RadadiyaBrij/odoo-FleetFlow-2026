@@ -5,7 +5,7 @@ const AuthContext = createContext(null);
 const ROLE_MATRIX = {
     MANAGER: {
         access: { dashboard: true, vehicles: true, drivers: true, trips: true, maintenance: true, expenses: true, performance: true, analytics: true },
-        manage: { vehicles: true, drivers: true, trips: false, maintenance: true, expenses: false, performance: true }
+        manage: { vehicles: true, drivers: true, trips: true, maintenance: true, expenses: true, performance: true }
     },
     DISPATCHER: {
         access: { dashboard: true, vehicles: true, drivers: true, trips: true, maintenance: true, expenses: true, performance: false, analytics: false },
