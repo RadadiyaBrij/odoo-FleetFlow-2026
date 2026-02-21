@@ -1,0 +1,173 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  username     String   @unique
+  email        String   @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  role         Role     @default(DISPATCHER)
+  status       String   @default("Active")
+  
+  createdDate  DateTime @default(now())
+  lastLogin    DateTime?
+  updatedAt    DateTime @updatedAt
+  
+  vehicles      Vehicle[]
+  createdTrips  Trip[]
+  notifications Notification[]
+  
+  @@index([email])
+  @@index([role])
+}
+
+enum Role {
+  MANAGER
+  DISPATCHER
+  SAFETY_OFFICER
+  ANALYST
+}
+
+model Vehicle {
+  id              Int      @id @default(autoincrement())
+  licensePlate    String   @unique
+  name            String
+  vehicleType     String
+  model           String
+  maxCapacityKg   Float
+  currentOdometer Float    @default(0)
+  acquisitionCost Float?
+  status          String   @default("Available")
+  
+  createdDate     DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  createdById     Int
+  createdBy       User     @relation(fields: [createdById], references: [id])
+  
+  trips           Trip[]
+  maintenanceLogs MaintenanceLog[]
+  expenses        Expense[]
+  
+  @@index([status])
+  @@index([licensePlate])
+  @@index([vehicleType])
+}
+
+model Driver {
+  id                Int      @id @default(autoincrement())
+  name              String
+  email             String   @unique
+  phone             String
+  licenseNumber     String   @unique
+  licenseExpiryDate DateTime
+  licenseCategory   String
+  status            String   @default("On Duty")
+  
+  safetyScore       Float    @default(0)
+  tripsCompleted    Int      @default(0)
+  complaintsCount   Int      @default(0)
+  
+  createdDate       DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  trips             Trip[]
+  
+  @@index([status])
+  @@index([licenseExpiryDate])
+}
+
+model Trip {
+  id                 Int      @id @default(autoincrement())
+  tripNumber         String   @unique @default(cuid())
+  vehicleId          Int
+  driverId           Int
+  cargoWeightKg      Float
+  originAddress      String
+  destinationAddress String
+  estimatedFuelCost  Float
+  
+  status             String   @default("Draft")
+  
+  startOdometer      Float?
+  endOdometer        Float?
+  tripStartTime      DateTime?
+  tripEndTime        DateTime?
+  
+  createdDate        DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  
+  vehicle            Vehicle  @relation(fields: [vehicleId], references: [id])
+  driver             Driver   @relation(fields: [driverId], references: [id])
+  expenses           Expense[]
+  
+  @@index([status])
+  @@index([vehicleId])
+  @@index([driverId])
+  @@index([createdDate])
+}
+
+model MaintenanceLog {
+  id              Int      @id @default(autoincrement())
+  vehicleId       Int
+  issueType       String
+  description     String?
+  cost            Float
+  serviceDate     DateTime
+  completedDate   DateTime?
+  status          String   @default("Pending")
+  
+  technicianName  String?
+  createdDate     DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  vehicle         Vehicle  @relation(fields: [vehicleId], references: [id])
+  
+  @@index([vehicleId])
+  @@index([status])
+}
+
+model Expense {
+  id          Int      @id @default(autoincrement())
+  vehicleId   Int
+  tripId      Int?
+  expenseType String
+  amount      Float
+  quantity    Float?
+  unit        String?
+  
+  expenseDate DateTime
+  notes       String?
+  createdDate DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id])
+  trip        Trip?    @relation(fields: [tripId], references: [id])
+  
+  @@index([vehicleId])
+  @@index([expenseType])
+  @@index([expenseDate])
+}
+
+model Notification {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  title       String
+  message     String
+  type        String
+  isRead      Boolean  @default(false)
+  
+  createdDate DateTime @default(now())
+  
+  user        User     @relation(fields: [userId], references: [id])
+  
+  @@index([userId])
+  @@index([isRead])
+}
