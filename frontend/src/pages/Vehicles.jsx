@@ -38,7 +38,9 @@ export default function Vehicles() {
             setShowModal(false);
             setForm({ name: '', licensePlate: '', vehicleType: 'Truck', model: '', maxCapacityKg: '', acquisitionCost: '' });
             fetchVehicles();
-        } catch { toast.error('Check details and retry'); }
+        } catch (err) {
+            toast.error(err.response?.data?.error?.message || err.response?.data?.message || 'Check details and retry');
+        }
     };
 
     return (

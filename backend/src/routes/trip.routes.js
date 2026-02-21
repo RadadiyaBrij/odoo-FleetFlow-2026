@@ -36,4 +36,12 @@ router.patch('/:id/complete', roleMiddleware(['DISPATCHER']), async (req, res, n
   } catch (error) { next(error); }
 });
 
+// Only DISPATCHER can cancel trips
+router.patch('/:id/cancel', roleMiddleware(['DISPATCHER']), async (req, res, next) => {
+  try {
+    const trip = await tripService.cancelTrip(req.params.id);
+    res.json(trip);
+  } catch (error) { next(error); }
+});
+
 export default router;

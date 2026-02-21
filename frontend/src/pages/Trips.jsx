@@ -18,7 +18,7 @@ export default function Trips() {
     const [vehicles, setVehicles] = useState([]);
     const [drivers, setDrivers] = useState([]);
     const [showModal, setShowModal] = useState(false);
-    const [form, setForm] = useState({ tripNumber: '', vehicleId: '', driverId: '', originAddress: '', destinationAddress: '', cargoDescription: '', cargoWeightKg: '', estimatedRevenue: '', scheduledDeparture: '' });
+    const [form, setForm] = useState({ vehicleId: '', driverId: '', originAddress: '', destinationAddress: '', cargoDescription: '', cargoWeightKg: '', estimatedFuelCost: '' });
 
     const fetchAll = async () => {
         try {
@@ -30,18 +30,30 @@ export default function Trips() {
 
     const handleDispatch = async (id) => {
         try { await api.patch(`/trips/${id}/dispatch`); toast.success('Dispatch successful'); fetchAll(); }
-        catch { toast.error('Dispatch failed'); }
+        catch (err) { toast.error(err.response?.data?.error?.message || 'Dispatch failed'); }
     };
 
     const handleComplete = async (id) => {
         try { await api.patch(`/trips/${id}/complete`, { actualArrival: new Date().toISOString() }); toast.success('Route completed'); fetchAll(); }
-        catch { toast.error('Update failed'); }
+        catch (err) { toast.error(err.response?.data?.error?.message || 'Update failed'); }
+    };
+
+    const handleCancel = async (id) => {
+        if (!confirm('Abort this mission? This cannot be undone.')) return;
+        try { await api.patch(`/trips/${id}/cancel`); toast.success('Mission aborted'); fetchAll(); }
+        catch (err) { toast.error(err.response?.data?.error?.message || 'Cancellation failed'); }
     };
 
     const handleCreate = async (e) => {
         e.preventDefault();
-        try { await api.post('/trips', form); setShowModal(false); fetchAll(); toast.success('Route mapped'); }
-        catch { toast.error('Check trip data'); }
+        try {
+            await api.post('/trips', form);
+            setShowModal(false);
+            setForm({ vehicleId: '', driverId: '', originAddress: '', destinationAddress: '', cargoDescription: '', cargoWeightKg: '', estimatedFuelCost: '' });
+            fetchAll();
+            toast.success('Route mapped');
+        }
+        catch (err) { toast.error(err.response?.data?.error?.message || err.response?.data?.message || 'Check trip data'); }
     };
 
     return (
@@ -92,6 +104,11 @@ export default function Trips() {
                                                     <CheckCircle2 size={12} /> Stop
                                                 </button>
                                             )}
+                                            {(t.status === 'Draft' || t.status === 'Dispatched') && (
+                                                <button onClick={() => handleCancel(t.id)} className="btn-ghost" style={{ padding: '4px 10px', color: '#EF4444', borderColor: '#EF444430', marginLeft: '6px' }}>
+                                                    <X size={12} /> Abort
+                                                </button>
+                                            )}
                                         </td>
                                     )}
                                 </tr>
@@ -125,8 +142,9 @@ export default function Trips() {
                                 </div>
                                 <div className="grid-2">
                                     <div className="form-group"><label>Weight (kg)</label><input type="number" required value={form.cargoWeightKg} onChange={e => setForm({ ...form, cargoWeightKg: Number(e.target.value) })} /></div>
-                                    <div className="form-group"><label>Cargo Ref</label><input value={form.cargoDescription} onChange={e => setForm({ ...form, cargoDescription: e.target.value })} /></div>
+                                    <div className="form-group"><label>Fuel Budget ($)</label><input type="number" required value={form.estimatedFuelCost} onChange={e => setForm({ ...form, estimatedFuelCost: Number(e.target.value) })} /></div>
                                 </div>
+                                <div className="form-group"><label>Cargo Ref</label><input value={form.cargoDescription} onChange={e => setForm({ ...form, cargoDescription: e.target.value })} /></div>
                                 <button type="submit" className="btn-primary">Execute Route Plan</button>
                             </form>
                         </motion.div>

@@ -10,7 +10,7 @@ export default function Drivers() {
     const [drivers, setDrivers] = useState([]);
     const [showModal, setShowModal] = useState(false);
     const [search, setSearch] = useState('');
-    const [form, setForm] = useState({ name: '', email: '', phone: '', licenseNumber: '', licenseExpiryDate: '', bloodGroup: '', emergencyContact: '' });
+    const [form, setForm] = useState({ name: '', email: '', phone: '', licenseNumber: '', licenseExpiryDate: '', licenseCategory: 'LMV' });
 
     const fetchDrivers = async () => {
         try { const { data } = await api.get('/drivers'); setDrivers(data); }
@@ -26,9 +26,12 @@ export default function Drivers() {
             await api.post('/drivers', form);
             toast.success('Personnel enrolled');
             setShowModal(false);
-            setForm({ name: '', email: '', phone: '', licenseNumber: '', licenseExpiryDate: '', bloodGroup: '', emergencyContact: '' });
+            setForm({ name: '', email: '', phone: '', licenseNumber: '', licenseExpiryDate: '', licenseCategory: 'LMV' });
             fetchDrivers();
-        } catch { toast.error('Check license data'); }
+        } catch (err) {
+            const serverError = err.response?.data?.error?.message || err.response?.data?.message || 'Check license data';
+            toast.error(serverError);
+        }
     };
 
     return (
@@ -53,7 +56,7 @@ export default function Drivers() {
 
             <div className="table-wrapper">
                 <table>
-                    <thead><tr><th>Full Name</th><th>Compliance ID</th><th>Safety Score</th><th>Trips</th><th>Status</th></tr></thead>
+                    <thead><tr><th>Full Name</th><th>Compliance ID</th><th>Category</th><th>Safety Score</th><th>Trips</th><th>Status</th></tr></thead>
                     <tbody>
                         {filtered.map(d => (
                             <tr key={d.id}>
@@ -67,6 +70,7 @@ export default function Drivers() {
                                     </div>
                                 </td>
                                 <td style={{ fontFamily: 'JetBrains Mono, monospace', color: 'var(--text-sub)' }}>{d.licenseNumber}</td>
+                                <td><span className="badge" style={{ background: 'var(--primary-glow)', color: 'var(--primary)' }}>{d.licenseCategory}</span></td>
                                 <td style={{ fontWeight: 800, color: d.safetyScore >= 80 ? '#22C55E' : d.safetyScore >= 60 ? '#F5BF00' : '#EF4444' }}>{d.safetyScore}%</td>
                                 <td style={{ color: 'var(--text-sub)' }}>{d.tripsCompleted}</td>
                                 <td>
@@ -95,6 +99,13 @@ export default function Drivers() {
                                 <div className="grid-2">
                                     <div className="form-group"><label>License ID</label><input required value={form.licenseNumber} onChange={e => setForm({ ...form, licenseNumber: e.target.value })} /></div>
                                     <div className="form-group"><label>Expiry Date</label><input type="date" required value={form.licenseExpiryDate} onChange={e => setForm({ ...form, licenseExpiryDate: e.target.value })} /></div>
+                                </div>
+                                <div className="form-group"><label>License Category</label>
+                                    <select value={form.licenseCategory} onChange={e => setForm({ ...form, licenseCategory: e.target.value })}>
+                                        <option value="LMV">LMV (Light Vehicle)</option>
+                                        <option value="HMV">HMV (Heavy Vehicle)</option>
+                                        <option value="Both">Both Classes</option>
+                                    </select>
                                 </div>
                                 <button type="submit" className="btn-primary">Enroll Personnel</button>
                             </form>

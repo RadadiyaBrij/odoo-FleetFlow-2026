@@ -22,17 +22,51 @@ export const driverService = {
   },
 
   addDriver: async (driverData) => {
-    return prisma.driver.create({
-      data: {
-        ...driverData,
-        licenseExpiryDate: new Date(driverData.licenseExpiryDate)
+    const { name, email, phone, licenseNumber, licenseExpiryDate, licenseCategory } = driverData;
+    const expiry = new Date(licenseExpiryDate);
+    const isExpired = expiry < new Date();
+
+    try {
+      return await prisma.driver.create({
+        data: {
+          name,
+          email,
+          phone,
+          licenseNumber,
+          licenseCategory: licenseCategory || 'LMV',
+          status: isExpired ? 'Suspended' : 'On Duty',
+          licenseExpiryDate: expiry
+        }
+      });
+    } catch (error) {
+      if (error.code === 'P2002') {
+        const target = error.meta?.target || [];
+        if (target.includes('licenseNumber')) {
+          const err = new Error('This License ID is already registered in the system.');
+          err.status = 400;
+          throw err;
+        }
+        if (target.includes('email')) {
+          const err = new Error('This Email Address is already registered to another driver.');
+          err.status = 400;
+          throw err;
+        }
       }
-    });
+      throw error;
+    }
   },
 
   updateDriver: async (id, driverData) => {
-    const data = { ...driverData };
-    if (data.licenseExpiryDate) data.licenseExpiryDate = new Date(data.licenseExpiryDate);
+    const { name, email, phone, licenseNumber, licenseExpiryDate, licenseCategory, status } = driverData;
+    const data = {};
+    if (name) data.name = name;
+    if (email) data.email = email;
+    if (phone) data.phone = phone;
+    if (licenseNumber) data.licenseNumber = licenseNumber;
+    if (licenseCategory) data.licenseCategory = licenseCategory;
+    if (status) data.status = status;
+    if (licenseExpiryDate) data.licenseExpiryDate = new Date(licenseExpiryDate);
+
     return prisma.driver.update({ where: { id: parseInt(id) }, data });
   },
 

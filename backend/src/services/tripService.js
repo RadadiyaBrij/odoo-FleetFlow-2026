@@ -12,18 +12,19 @@ export const tripService = {
     });
 
     if (!vehicle) {
-      errors.push('Vehicle not found');
+      errors.push('The selected vehicle could not be found in our registry.');
       return { isValid: false, errors };
     }
 
     // Check capacity
-    if (parseFloat(tripData.cargoWeightKg) > vehicle.maxCapacityKg) {
-      errors.push(`Cargo weight (${tripData.cargoWeightKg}kg) exceeds vehicle capacity (${vehicle.maxCapacityKg}kg)`);
+    const cargoWeight = parseFloat(tripData.cargoWeightKg);
+    if (cargoWeight > vehicle.maxCapacityKg) {
+      errors.push(`Weight (${cargoWeight}kg) is out of capacity for this ${vehicle.vehicleType}. Max allowed: ${vehicle.maxCapacityKg}kg. Please try another vehicle with higher capacity.`);
     }
 
     // Check vehicle availability
     if (vehicle.status !== 'Available') {
-      errors.push(`Vehicle is ${vehicle.status}`);
+      errors.push(`This vehicle is currently ${vehicle.status} and cannot be assigned to a new trip.`);
     }
 
     // Get driver
@@ -32,18 +33,32 @@ export const tripService = {
     });
 
     if (!driver) {
-      errors.push('Driver not found');
+      errors.push('The selected driver could not be found.');
       return { isValid: false, errors };
     }
 
     // Check driver status
     if (driver.status === 'Suspended') {
-      errors.push('Driver is suspended');
+      errors.push('Assignment blocked: This driver is currently Suspended due to safety or compliance issues.');
     }
 
     // Check license expiry
     if (new Date(driver.licenseExpiryDate) < new Date()) {
-      errors.push('Driver license has expired');
+      errors.push('Assignment blocked: The driver\'s license has expired. Please update their credentials.');
+    }
+
+    // Check license category matching
+    const categoryMap = {
+      'Truck': 'HMV',
+      'Trailer': 'HMV',
+      'Tanker': 'HMV',
+      'Van': 'LMV',
+      'Pickup': 'LMV'
+    };
+
+    const requiredCategory = categoryMap[vehicle.vehicleType];
+    if (requiredCategory && driver.licenseCategory !== 'Both' && driver.licenseCategory !== requiredCategory) {
+      errors.push(`Driver license category mismatch: ${driver.name} holds an ${driver.licenseCategory} license, which cannot operate a ${vehicle.vehicleType} (Requires: ${requiredCategory}).`);
     }
 
     return {
@@ -64,13 +79,18 @@ export const tripService = {
       throw error;
     }
 
+    const { vehicleId, driverId, cargoWeightKg, originAddress, destinationAddress, estimatedFuelCost, cargoDescription, tripNumber } = tripData;
+
     return prisma.trip.create({
       data: {
-        ...tripData,
-        vehicleId: parseInt(tripData.vehicleId),
-        driverId: parseInt(tripData.driverId),
-        cargoWeightKg: parseFloat(tripData.cargoWeightKg),
-        estimatedFuelCost: parseFloat(tripData.estimatedFuelCost)
+        tripNumber: tripNumber || undefined, // Use cuid() if not provided
+        vehicleId: parseInt(vehicleId),
+        driverId: parseInt(driverId),
+        cargoWeightKg: parseFloat(cargoWeightKg),
+        originAddress: originAddress || 'Main Hub',
+        destinationAddress: destinationAddress || 'Delivery Point',
+        estimatedFuelCost: parseFloat(estimatedFuelCost) || 0,
+        status: 'Draft'
       }
     });
   },
@@ -145,6 +165,38 @@ export const tripService = {
         tripsCompleted: { increment: 1 }
       }
     });
+
+    return updatedTrip;
+  },
+
+  // Cancel trip logic
+  cancelTrip: async (tripId) => {
+    const trip = await prisma.trip.findUnique({
+      where: { id: parseInt(tripId) },
+      include: { vehicle: true, driver: true }
+    });
+
+    if (!trip) throw new Error('Trip not found');
+    if (trip.status === 'Completed') throw new Error('Cannot cancel a completed trip');
+
+    // Update trip status
+    const updatedTrip = await prisma.trip.update({
+      where: { id: parseInt(tripId) },
+      data: { status: 'Cancelled' }
+    });
+
+    // If it was dispatched, free up resources
+    if (trip.status === 'Dispatched') {
+      await prisma.vehicle.update({
+        where: { id: trip.vehicleId },
+        data: { status: 'Available' }
+      });
+
+      await prisma.driver.update({
+        where: { id: trip.driverId },
+        data: { status: 'Off Duty' }
+      });
+    }
 
     return updatedTrip;
   },

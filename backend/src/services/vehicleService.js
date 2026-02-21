@@ -30,12 +30,21 @@ export const vehicleService = {
 
   // Add new vehicle
   addVehicle: async (vehicleData, userId) => {
-    return prisma.vehicle.create({
-      data: {
-        ...vehicleData,
-        createdById: userId
+    try {
+      return await prisma.vehicle.create({
+        data: {
+          ...vehicleData,
+          createdById: userId
+        }
+      });
+    } catch (error) {
+      if (error.code === 'P2002' && error.meta?.target?.includes('licensePlate')) {
+        const err = new Error('A vehicle with this License Plate already exists in the registry.');
+        err.status = 400;
+        throw err;
       }
-    });
+      throw error;
+    }
   },
 
   // Update vehicle
