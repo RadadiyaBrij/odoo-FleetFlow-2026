@@ -3,22 +3,20 @@ import { Link, useNavigate } from 'react-router-dom';
 import { User, Lock, Eye, EyeOff, Truck } from 'lucide-react';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
+import { useAuth } from '../context/AuthContext.jsx';
 
 export default function Login() {
     const navigate = useNavigate();
+    const { login } = useAuth();
     const [showPass, setShowPass] = useState(false);
-    const [form, setForm] = useState({
-        username: '',
-        password: ''
-    });
+    const [form, setForm] = useState({ username: '', password: '' });
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
             const { data } = await api.post('/auth/login', form);
-            localStorage.setItem('token', data.accessToken);
-            localStorage.setItem('user', JSON.stringify(data.user));
-            toast.success(`Welcome back, ${data.user.firstName}!`);
+            login(data.user, data.accessToken);
+            toast.success(`Welcome back, ${data.user.firstName}! 🚛`);
             navigate('/dashboard');
         } catch (err) {
             toast.error(err.response?.data?.error?.message || 'Invalid credentials');

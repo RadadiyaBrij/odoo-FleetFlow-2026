@@ -30,6 +30,16 @@ export const expenseService = {
     });
   },
 
+  updateExpense: async (id, expenseData) => {
+    const data = { ...expenseData };
+    if (data.vehicleId) data.vehicleId = parseInt(data.vehicleId);
+    if (data.tripId) data.tripId = parseInt(data.tripId);
+    if (data.amount) data.amount = parseFloat(data.amount);
+    if (data.quantity) data.quantity = parseFloat(data.quantity);
+    if (data.expenseDate) data.expenseDate = new Date(data.expenseDate);
+    return prisma.expense.update({ where: { id: parseInt(id) }, data });
+  },
+
   getOperationalCost: async (vehicleId) => {
     const expenses = await prisma.expense.findMany({
       where: { vehicleId: parseInt(vehicleId) }

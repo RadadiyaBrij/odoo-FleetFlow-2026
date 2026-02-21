@@ -1,167 +1,143 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Truck, AlertTriangle, Activity, Package, TrendingUp, ShieldCheck } from 'lucide-react';
+import { Truck, Users, Map, AlertTriangle, TrendingUp, DollarSign, Activity, Shield, CheckCircle } from 'lucide-react';
 import api from '../api/axios';
 import toast from 'react-hot-toast';
+import { useAuth } from '../context/AuthContext.jsx';
 
-export default function Dashboard() {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    const [stats, setStats] = useState({
-        activeFleet: 0,
-        maintenanceAlerts: 0,
-        utilizationRate: 0,
-        pendingCargo: 0
-    });
-    const [loading, setLoading] = useState(true);
+const container = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.08 } } };
+const item = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
 
-    useEffect(() => {
-        const fetchStats = async () => {
-            try {
-                const { data } = await api.get('/analytics/kpi');
-                setStats(data);
-            } catch (err) {
-                toast.error('Failed to update KPIs');
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchStats();
-        const interval = setInterval(fetchStats, 60000);
-        return () => clearInterval(interval);
-    }, []);
-
-    const container = {
-        hidden: { opacity: 0 },
-        show: {
-            opacity: 1,
-            transition: { staggerChildren: 0.1 }
-        }
-    };
-
-    const item = {
-        hidden: { y: 20, opacity: 0 },
-        show: { y: 0, opacity: 1 }
-    };
-
+function StatCard({ label, value, icon, color, sub }) {
     return (
-        <motion.div variants={container} initial="hidden" animate="show">
-            <header className="mb-2">
-                <div className="flex-between">
-                    <div>
-                        <h1 style={{ fontSize: '2.5rem', fontWeight: 800 }}>Command Center</h1>
-                        <p style={{ color: 'var(--text-dim)', marginTop: '0.5rem' }}>Welcome back, {user.firstName}. Here is your fleet's status.</p>
-                    </div>
-                    <div className="flex" style={{ gap: '1rem' }}>
-                        <span className="badge badge-success" style={{ padding: '8px 16px' }}>
-                            <div style={{ width: '8px', height: '8px', background: 'currentColor', borderRadius: '50%', marginRight: '8px' }}></div>
-                            System Online
-                        </span>
-                    </div>
+        <motion.div variants={item} style={{
+            padding: '1.5rem', background: 'var(--bg-card)', borderRadius: '16px',
+            border: '1px solid var(--border)', position: 'relative', overflow: 'hidden'
+        }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-dim)', fontWeight: 600, marginBottom: '0.5rem' }}>{label}</p>
+                    <p style={{ fontSize: '2rem', fontWeight: 800, color }}>{value}</p>
+                    {sub && <p style={{ fontSize: '0.75rem', color: 'var(--text-dim)', marginTop: '0.25rem' }}>{sub}</p>}
                 </div>
-            </header>
-
-            <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginTop: '2.5rem' }}>
-                <StatCard
-                    variants={item}
-                    label="Active Fleet"
-                    value={stats.activeFleet}
-                    icon={<Truck size={24} />}
-                    color="#818cf8"
-                    trend="+2.5% from last month"
-                />
-                <StatCard
-                    variants={item}
-                    label="In Maintenance"
-                    value={stats.maintenanceAlerts}
-                    icon={<AlertTriangle size={24} />}
-                    color="#f87171"
-                    trend="-1 in shop today"
-                />
-                <StatCard
-                    variants={item}
-                    label="Utilization Rate"
-                    value={`${stats.utilizationRate}%`}
-                    icon={<Activity size={24} />}
-                    color="#4ade80"
-                    trend="Optimal threshold met"
-                />
-                <StatCard
-                    variants={item}
-                    label="Pending Loads"
-                    value={stats.pendingCargo}
-                    icon={<Package size={24} />}
-                    color="#fbbf24"
-                    trend="3 arriving shortly"
-                />
-            </div>
-
-            <div className="grid-2 mt-1" style={{ marginTop: '2rem' }}>
-                {/* Role Specific Views */}
-                {(user.role === 'MANAGER' || user.role === 'ANALYST') && (
-                    <motion.div variants={item} className="glass-card" style={{ padding: '2rem', background: 'var(--bg-card)' }}>
-                        <h2 style={{ fontSize: '1.25rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <TrendingUp size={20} color="var(--primary)" /> Financial Performance
-                        </h2>
-                        <div style={{ height: '200px', display: 'flex', alignItems: 'end', gap: '1rem', paddingBottom: '1rem' }}>
-                            <div style={{ flex: 1, background: 'var(--primary)', height: '80%', borderRadius: '4px' }}></div>
-                            <div style={{ flex: 1, background: 'var(--bg-input)', height: '60%', borderRadius: '4px' }}></div>
-                            <div style={{ flex: 1, background: 'var(--primary)', height: '90%', borderRadius: '4px' }}></div>
-                            <div style={{ flex: 1, background: 'var(--bg-input)', height: '40%', borderRadius: '4px' }}></div>
-                            <div style={{ flex: 1, background: 'var(--primary)', height: '75%', borderRadius: '4px' }}></div>
-                        </div>
-                        <p style={{ color: 'var(--text-dim)', fontSize: '0.9rem', marginTop: '1rem' }}>Revenue vs Operating Cost (Current Quarter)</p>
-                    </motion.div>
-                )}
-
-                {user.role === 'SAFETY_OFFICER' && (
-                    <motion.div variants={item} className="glass-card" style={{ padding: '2rem', background: 'var(--bg-card)' }}>
-                        <h2 style={{ fontSize: '1.25rem', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <ShieldCheck size={20} color="var(--success)" /> Compliance Alerts
-                        </h2>
-                        <div className="space-y-4">
-                            <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', padding: '1rem', borderRadius: '12px' }}>
-                                <p style={{ fontWeight: 600, color: '#f87171' }}>License Expiry Warning</p>
-                                <p style={{ fontSize: '0.85rem', opacity: 0.8 }}>Driver Sarah Jenkins - Expiry in 3 days</p>
-                            </div>
-                            <div style={{ background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.2)', padding: '1rem', borderRadius: '12px', marginTop: '1rem' }}>
-                                <p style={{ fontWeight: 600, color: '#fbbf24' }}>Upcoming Inspection</p>
-                                <p style={{ fontSize: '0.85rem', opacity: 0.8 }}>Truck-12 (XYZ-5544) due for service</p>
-                            </div>
-                        </div>
-                    </motion.div>
-                )}
-
-                <motion.div variants={item} className="glass-card" style={{ padding: '2rem', background: 'var(--bg-card)', gridColumn: user.role === 'DISPATCHER' ? 'span 2' : 'auto' }}>
-                    <h2 style={{ fontSize: '1.25rem', marginBottom: '1.5rem' }}>Global Fleet Map</h2>
-                    <div style={{ height: '300px', background: 'var(--bg-input)', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
-                        <div style={{ width: '100%', height: '100%', opacity: 0.2, backgroundImage: 'radial-gradient(var(--text-dim) 1px, transparent 0)', backgroundSize: '24px 24px' }}></div>
-                        <Activity color="var(--primary)" size={48} className="animate-pulse" />
-                        <div style={{ position: 'absolute', top: '10%', left: '20%', width: '12px', height: '12px', background: 'var(--success)', borderRadius: '50%', boxShadow: '0 0 12px var(--success)' }}></div>
-                        <div style={{ position: 'absolute', bottom: '30%', right: '40%', width: '12px', height: '12px', background: 'var(--warning)', borderRadius: '50%', boxShadow: '0 0 12px var(--warning)' }}></div>
-                    </div>
-                </motion.div>
+                <div style={{ background: `${color}22`, padding: '0.75rem', borderRadius: '12px', color }}>{icon}</div>
             </div>
         </motion.div>
     );
 }
 
-const StatCard = ({ label, value, icon, color, trend, variants }) => (
-    <motion.div
-        variants={variants}
-        className="glass-card"
-        style={{ padding: '1.5rem', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '24px' }}
-    >
-        <div className="flex-between mb-1" style={{ marginBottom: '1.5rem' }}>
-            <div style={{ width: '48px', height: '48px', background: 'rgba(255,255,255,0.05)', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: color }}>
-                {icon}
+export default function Dashboard() {
+    const { user, role } = useAuth();
+    const [kpi, setKpi] = useState({});
+    const [extra, setExtra] = useState({});
+    const [trips, setTrips] = useState([]);
+
+    useEffect(() => {
+        const fetchAll = async () => {
+            try {
+                const kpiRes = await api.get('/analytics/kpi');
+                setKpi(kpiRes.data);
+
+                if (role === 'MANAGER' || role === 'DISPATCHER') {
+                    const [op, tr] = await Promise.all([api.get('/analytics/operational'), api.get('/trips')]);
+                    setExtra(op.data);
+                    setTrips(tr.data.slice(0, 5));
+                }
+                if (role === 'MANAGER' || role === 'SAFETY_OFFICER') {
+                    const safety = await api.get('/analytics/safety');
+                    setExtra(prev => ({ ...prev, ...safety.data }));
+                }
+                if (role === 'MANAGER' || role === 'ANALYST') {
+                    const fin = await api.get('/analytics/financial');
+                    setExtra(prev => ({ ...prev, ...fin.data }));
+                }
+            } catch { toast.error('Failed to load dashboard'); }
+        };
+        fetchAll();
+    }, [role]);
+
+    const greeting = new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 17 ? 'Good afternoon' : 'Good evening';
+
+    return (
+        <motion.div initial="hidden" animate="show" variants={container}>
+            <motion.div variants={item} style={{ marginBottom: '2rem' }}>
+                <h1 style={{ fontSize: '2rem', fontWeight: 800 }}>{greeting}, {user?.firstName}! 👋</h1>
+                <p style={{ color: 'var(--text-dim)', marginTop: '0.4rem' }}>Here's your {role === 'MANAGER' ? 'full fleet' : role === 'DISPATCHER' ? 'operations' : role === 'SAFETY_OFFICER' ? 'safety' : 'financial'} overview</p>
+            </motion.div>
+
+            {/* Fleet KPIs — visible to all */}
+            <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
+                <StatCard label="Active Fleet" value={kpi.activeFleet ?? '—'} icon={<Truck size={22} />} color="#818cf8" sub={`${kpi.totalVehicles} total vehicles`} />
+                <StatCard label="Fleet Utilization" value={`${kpi.utilizationRate ?? 0}%`} icon={<Activity size={22} />} color="#34d399" sub="Active / Total ratio" />
+                <StatCard label="Maintenance Alerts" value={kpi.maintenanceAlerts ?? '—'} icon={<AlertTriangle size={22} />} color="#f59e0b" sub="Vehicles in shop" />
+                <StatCard label="Pending Cargo" value={kpi.pendingCargo ?? '—'} icon={<Map size={22} />} color="#06b6d4" sub="Awaiting dispatch" />
             </div>
-            <div style={{ textAlign: 'right' }}>
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-dim)', fontWeight: 500 }}>{label}</p>
-                <h3 style={{ fontSize: '1.75rem', fontWeight: 800, marginTop: '4px' }}>{value}</h3>
-            </div>
-        </div>
-        <div style={{ paddingTop: '1rem', borderTop: '1px solid var(--border)', fontSize: '0.75rem', color: 'var(--text-dim)', fontWeight: 600 }}>
-            {trend}
-        </div>
-    </motion.div>
-);
+
+            {/* MANAGER / DISPATCHER — Operational KPIs */}
+            {(role === 'MANAGER' || role === 'DISPATCHER') && (
+                <motion.div variants={item} style={{ marginBottom: '2rem' }}>
+                    <h2 style={{ fontWeight: 700, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Map size={18} color="var(--primary)" /> Operational Overview
+                    </h2>
+                    <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+                        <StatCard label="Active Trips" value={extra.activeTrips ?? '—'} icon={<Map size={20} />} color="#818cf8" />
+                        <StatCard label="Pending Trips" value={extra.pendingTrips ?? '—'} icon={<TrendingUp size={20} />} color="#f59e0b" />
+                        <StatCard label="Available Vehicles" value={extra.availableVehicles ?? '—'} icon={<Truck size={20} />} color="#34d399" />
+                        <StatCard label="Available Drivers" value={extra.availableDrivers ?? '—'} icon={<Users size={20} />} color="#06b6d4" />
+                    </div>
+                </motion.div>
+            )}
+
+            {/* MANAGER / DISPATCHER — Recent Trips */}
+            {(role === 'MANAGER' || role === 'DISPATCHER') && trips.length > 0 && (
+                <motion.div variants={item} style={{ padding: '1.5rem', background: 'var(--bg-card)', borderRadius: '16px', border: '1px solid var(--border)', marginBottom: '2rem' }}>
+                    <h3 style={{ fontWeight: 700, marginBottom: '1rem' }}>🚚 Recent Trips</h3>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead><tr>{['Trip #', 'Route', 'Driver', 'Status'].map(h => <th key={h} style={{ textAlign: 'left', padding: '8px', fontSize: '0.78rem', color: 'var(--text-dim)', borderBottom: '1px solid var(--border)' }}>{h}</th>)}</tr></thead>
+                        <tbody>
+                            {trips.map(t => (
+                                <tr key={t.id}>
+                                    <td style={{ padding: '8px', fontSize: '0.85rem', fontFamily: 'monospace' }}>#{t.tripNumber?.slice(0, 8)}</td>
+                                    <td style={{ padding: '8px', fontSize: '0.85rem' }}>{t.originAddress} → {t.destinationAddress}</td>
+                                    <td style={{ padding: '8px', fontSize: '0.85rem', color: 'var(--text-dim)' }}>{t.driver?.name}</td>
+                                    <td style={{ padding: '8px' }}><span style={{ padding: '2px 8px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: 700, background: t.status === 'Completed' ? 'rgba(52,211,153,0.15)' : t.status === 'Dispatched' ? 'rgba(245,158,11,0.15)' : 'rgba(148,163,184,0.1)', color: t.status === 'Completed' ? '#34d399' : t.status === 'Dispatched' ? '#f59e0b' : '#94a3b8' }}>{t.status}</span></td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </motion.div>
+            )}
+
+            {/* SAFETY OFFICER / MANAGER — Safety KPIs */}
+            {(role === 'SAFETY_OFFICER' || role === 'MANAGER') && (
+                <motion.div variants={item} style={{ padding: '1.5rem', background: 'var(--bg-card)', borderRadius: '16px', border: '1px solid var(--border)', marginBottom: '2rem' }}>
+                    <h3 style={{ fontWeight: 700, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}><Shield size={18} color="#4ade80" /> Safety & Compliance</h3>
+                    <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem' }}>
+                        <StatCard label="Expired Licenses" value={extra.expiredLicenses ?? '—'} icon={<AlertTriangle size={18} />} color="#f87171" />
+                        <StatCard label="Expiring ≤30 Days" value={extra.expiringLicenses ?? '—'} icon={<AlertTriangle size={18} />} color="#fbbf24" />
+                        <StatCard label="Avg Safety Score" value={`${extra.avgSafetyScore ?? 0}%`} icon={<Shield size={18} />} color="#4ade80" />
+                        <StatCard label="Suspended Drivers" value={extra.suspendedDrivers ?? '—'} icon={<Users size={18} />} color="#f87171" />
+                    </div>
+                    {(extra.expiredLicenses ?? 0) > 0 && (
+                        <div style={{ marginTop: '1rem', padding: '0.75rem 1rem', background: 'rgba(239,68,68,0.1)', borderRadius: '10px', border: '1px solid rgba(239,68,68,0.2)' }}>
+                            <p style={{ fontSize: '0.85rem', color: '#f87171', fontWeight: 600 }}>🔒 {extra.expiredLicenses} driver(s) auto-suspended — expired licenses</p>
+                        </div>
+                    )}
+                </motion.div>
+            )}
+
+            {/* ANALYST / MANAGER — Financial KPIs */}
+            {(role === 'ANALYST' || role === 'MANAGER') && (
+                <motion.div variants={item} style={{ padding: '1.5rem', background: 'var(--bg-card)', borderRadius: '16px', border: '1px solid var(--border)' }}>
+                    <h3 style={{ fontWeight: 700, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}><DollarSign size={18} color="#06b6d4" /> Financial Overview</h3>
+                    <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem' }}>
+                        <StatCard label="Total Fuel Cost" value={`₹${(extra.totalFuelCost ?? 0).toLocaleString()}`} icon={<DollarSign size={18} />} color="#f87171" />
+                        <StatCard label="Fleet ROI" value={`+${extra.fleetROI ?? 0}%`} icon={<TrendingUp size={18} />} color="#4ade80" />
+                        <StatCard label="Utilization Rate" value={`${extra.utilizationRate ?? 0}%`} icon={<Activity size={18} />} color="#818cf8" />
+                        <StatCard label="Total Expenses" value={`₹${(extra.totalExpenses ?? 0).toLocaleString()}`} icon={<DollarSign size={18} />} color="#06b6d4" />
+                    </div>
+                </motion.div>
+            )}
+        </motion.div>
+    );
+}

@@ -33,10 +33,21 @@ export const driverService = {
   updateDriver: async (id, driverData) => {
     const data = { ...driverData };
     if (data.licenseExpiryDate) data.licenseExpiryDate = new Date(data.licenseExpiryDate);
+    return prisma.driver.update({ where: { id: parseInt(id) }, data });
+  },
 
-    return prisma.driver.update({
-      where: { id: parseInt(id) },
-      data
+  // Safety Officer: update duty status
+  updateDriverStatus: async (id, status) => {
+    const allowed = ['On Duty', 'Taking a Break', 'Suspended'];
+    if (!allowed.includes(status)) throw new Error(`Invalid status. Allowed: ${allowed.join(', ')}`);
+    return prisma.driver.update({ where: { id: parseInt(id) }, data: { status } });
+  },
+
+  // Auto-lock drivers with expired licenses (Safety Lock feature)
+  checkAndLockExpiredLicenses: async () => {
+    return prisma.driver.updateMany({
+      where: { licenseExpiryDate: { lt: new Date() }, status: { not: 'Suspended' } },
+      data: { status: 'Suspended' }
     });
   },
 
