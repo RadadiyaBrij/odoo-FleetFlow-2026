@@ -1,3 +1,4 @@
+// Backend synchronized with Prisma Schema
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
