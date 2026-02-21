@@ -1,64 +1,98 @@
-# 🚀 FleetFlow System
+# 🚛 FleetFlow Logistics System
 
-Modular Fleet & Logistics Management System built with Node.js, Express, Prisma, and React.
+**FleetFlow** is a modern, enterprise-grade Fleet & Logistics Management System designed for efficiency, safety, and data-driven decision-making. Featuring a premium glassmorphic UI and a robust modular backend, it empowers logistics managers to oversee their entire fleet lifecycle in real-time.
 
-## 🏗️ Architecture
+---
 
-- **Backend:** Node.js, Express.js, Prisma ORM, PostgreSQL.
-- **Frontend:** React 18, Vite, Framer Motion, Lucide Icons.
-- **Database:** PostgreSQL (Relation structure for Vehicles, Drivers, Trips, etc.)
+## ✨ Key Features
+
+### 🖥️ Command Center (Intelligent Dashboard)
+- **Role-Based Views:** Tailored KPI dashboards for Managers, Dispatchers, Safety Officers, and Analysts.
+- **Real-time Metrics:** Track Active Fleet, Utilization Rate, Maintenance Alerts, and Pending Cargo.
+- **Financial Analytics:** Monitor ROI, Fuel Efficiency, and Operational Costs at a glance.
+
+### 🚛 Asset & Personnel Management
+- **Vehicle Registry:** Complete lifecycle tracking (Acquisition Cost, Odometer, Maintenance Status).
+- **Driver Profiles:** Manage certified personnel with Safety Scores, Compliance IDs, and License Expiry monitoring.
+- **Dynamic Status:** Automatic status transitions (e.g., Driver becomes "ON DUTY" when a trip is dispatched).
+
+### 📍 Trip & Logic Dispatcher
+- **Validated Dispatching:** Ensure cargo weight stays within vehicle capacity and driver licenses are valid.
+- **Operational Workflow:** Lifecycle management from Draft → Dispatched → Completed.
+- **Maintenance Logs:** Track service history, technician notes, and repair costs.
+
+---
+
+## 🛠️ Technical Stack
+
+- **Frontend:**
+  - [React](https://reactjs.org/) (Vite)
+  - [Framer Motion](https://www.framer.com/motion/) (Premium Micro-animations)
+  - [Lucide React](https://lucide.dev/) (Iconography)
+  - [Vanilla CSS](https://developer.mozilla.org/en-US/docs/Web/CSS) (Glassmorphic Design System)
+- **Backend:**
+  - [Node.js](https://nodejs.org/) & [Express](https://expressjs.com/)
+  - [Prisma ORM](https://www.prisma.io/) (PostgreSQL)
+  - [JWT](https://jwt.io/) (Secure Authentication)
+- **Design:** Modern Glassmorphism with Dark/Light theme support.
+
+---
+
+## 🏗️ Architecture & Roles
+
+The system implements a strict **Role-Based Access Control (RBAC)** matrix:
+
+| Role | Core Focus | Permissions |
+| :--- | :--- | :--- |
+| **Manager** | Strategic Overview | Full access to all modules and system settings. |
+| **Dispatcher** | Operations | Manage trips, assign drivers, and handle available assets. |
+| **Safety Officer** | Compliance | Monitor driver scores, license expiry, and vehicle health. |
+| **Analyst** | ROI & Finance | Deep dive into expenses, revenue trends, and efficiency KPIs. |
+
+---
 
 ## 🚀 Getting Started
 
-### Backend Setup
+### Prerequisites
+- Node.js (v18 or higher)
+- PostgreSQL Database
 
-1. Navigate to the `backend` directory:
+### Installation
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/RadadiyaBrij/odoo-FleetFlow-2026.git
+   ```
+
+2. **Backend Setup:**
    ```bash
    cd backend
-   ```
-2. Install dependencies:
-   ```bash
    npm install
-   ```
-3. Update the `.env` file with your PostgreSQL connection string:
-   ```env
-   DATABASE_URL="postgresql://user:password@localhost:5432/fleetflow?schema=public"
-   ```
-4. Run Prisma migrations:
-   ```bash
-   npx prisma migrate dev --name init
-   ```
-5. Start the development server:
-   ```bash
+   # Configure .env with DATABASE_URL
+   npx prisma db push
    npm run dev
    ```
 
-### Frontend Setup
-
-1. Navigate to the `frontend` directory:
+3. **Frontend Setup:**
    ```bash
-   cd frontend
-   ```
-2. Install dependencies:
-   ```bash
+   cd ../frontend
    npm install
-   ```
-3. Start the Vite dev server:
-   ```bash
    npm run dev
    ```
 
-## 🛠️ Features
+---
 
-- **Command Center:** Real-time KPI tracking (Active Fleet, Utilization, Maintenance).
-- **Vehicle Registry:** Complete lifecycle management for fleet assets.
-- **Trip Dispatcher:** Validated trip creation (Weight capacity, license expiry).
-- **Driver Profiles:** Safety scores and compliance monitoring.
-- **Real-time Logic:** Automatic vehicle status updates based on trip/maintenance activity.
+## 📁 Directory Structure
 
-## 📁 Structure
+- `backend/src/services`: Core business logic & KPI calculation engines.
+- `backend/src/routes`: Express API endpoints (Modular structure).
+- `frontend/src/pages`: Interactive React views using the FleetFlow design system.
+- `frontend/src/context`: Authentication and Theme state management.
+- `resources`: Project documentation and requirement specs.
 
-- `/backend/src/services`: Core business logic (Validation, KPI calculations).
-- `/backend/src/routes`: RESTful API endpoints.
-- `/frontend/src/pages`: Interactive UI views with premium dark theme.
-- `/resources`: Requirement documents and design mockups.
+---
+
+## 📄 License
+This project is licensed under the ISC License.
+
+Developed with ❤️ for Modern Logistics.
