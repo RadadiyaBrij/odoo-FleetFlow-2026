@@ -92,7 +92,3 @@ The system implements a strict **Role-Based Access Control (RBAC)** matrix:
 
 ---
 
-## 📄 License
-This project is licensed under the ISC License.
-
-Developed with ❤️ for Modern Logistics.
