@@ -13,19 +13,29 @@ const STATUS_CONFIG = {
 };
 
 export default function Trips() {
-    const { can } = useAuth();
+    const { role, can } = useAuth();
     const [trips, setTrips] = useState([]);
     const [vehicles, setVehicles] = useState([]);
     const [drivers, setDrivers] = useState([]);
+    const [eligibleDrivers, setEligibleDrivers] = useState([]);
     const [showModal, setShowModal] = useState(false);
     const [form, setForm] = useState({ vehicleId: '', driverId: '', originAddress: '', destinationAddress: '', cargoDescription: '', cargoWeightKg: '', estimatedFuelCost: '', revenue: '' });
 
     const fetchAll = async () => {
         try {
-            const [tr, v, d] = await Promise.all([api.get('/trips'), api.get('/vehicles'), api.get('/drivers')]);
-            setTrips(tr.data); setVehicles(v.data); setDrivers(d.data);
+            const [tr, v] = await Promise.all([api.get('/trips'), api.get('/vehicles')]);
+            setTrips(tr.data); setVehicles(v.data);
         } catch { toast.error('Check network'); }
     };
+
+    useEffect(() => {
+        if (showModal) {
+            api.get('/drivers/available')
+                .then(res => setEligibleDrivers(res.data))
+                .catch(() => toast.error('Error fetching drivers'));
+        }
+    }, [showModal]);
+
     useEffect(() => { fetchAll(); }, []);
 
     const handleDispatch = async (id) => {
@@ -94,19 +104,19 @@ export default function Trips() {
                                     <td><span className="badge" style={{ background: sc.bg, color: sc.color, border: `1px solid ${sc.border}` }}>{sc.label}</span></td>
                                     {can.manage.trips && (
                                         <td>
-                                            {t.status === 'Draft' && (
-                                                <button onClick={() => handleDispatch(t.id)} className="btn-ghost" style={{ padding: '4px 10px', color: 'var(--primary)', borderColor: 'var(--primary-glow)' }}>
+                                            {role !== 'MANAGER' && t.status === 'Draft' && (
+                                                <button onClick={() => handleDispatch(t.id)} className="btn-ghost" style={{ padding: '4px 10px', color: '#F5BF00', borderColor: '#F5BF0030' }}>
                                                     <SendHorizonal size={12} /> Start
                                                 </button>
                                             )}
                                             {t.status === 'Dispatched' && (
                                                 <button onClick={() => handleComplete(t.id)} className="btn-ghost" style={{ padding: '4px 10px', color: '#22C55E', borderColor: '#22C55E30' }}>
-                                                    <CheckCircle2 size={12} /> Stop
+                                                    <CheckCircle2 size={12} /> {role === 'MANAGER' ? 'Done' : 'Stop'}
                                                 </button>
                                             )}
                                             {(t.status === 'Draft' || t.status === 'Dispatched') && (
                                                 <button onClick={() => handleCancel(t.id)} className="btn-ghost" style={{ padding: '4px 10px', color: '#EF4444', borderColor: '#EF444430', marginLeft: '6px' }}>
-                                                    <X size={12} /> Abort
+                                                    <X size={12} /> {role === 'MANAGER' ? 'Cancel' : 'Abort'}
                                                 </button>
                                             )}
                                         </td>
@@ -130,10 +140,19 @@ export default function Trips() {
                                         {vehicles.filter(v => v.status === 'Available').map(v => <option key={v.id} value={v.id}>{v.name} ({v.licensePlate})</option>)}
                                     </select>
                                 </div>
-                                <div className="form-group"><label>Personnel</label>
-                                    <select required value={form.driverId} onChange={e => setForm({ ...form, driverId: e.target.value })}>
-                                        <option value="">Select Driver</option>
-                                        {drivers.filter(d => d.status === 'On Duty').map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                                <div className="form-group">
+                                    <label>Personnel (Available)</label>
+                                    <select
+                                        required
+                                        value={form.driverId}
+                                        onChange={e => setForm({ ...form, driverId: e.target.value })}
+                                    >
+                                        <option value="">{eligibleDrivers.length > 0 ? 'Select Driver' : 'No drivers available'}</option>
+                                        {eligibleDrivers.map(d => (
+                                            <option key={d.id} value={d.id}>
+                                                {d.name} — Safety: {d.safetyScore}%
+                                            </option>
+                                        ))}
                                     </select>
                                 </div>
                                 <div className="grid-2">

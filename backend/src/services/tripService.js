@@ -38,27 +38,13 @@ export const tripService = {
     }
 
     // Check driver status
-    if (driver.status === 'Suspended') {
-      errors.push('Assignment blocked: This driver is currently Suspended due to safety or compliance issues.');
+    if (driver.status !== 'AVAILABLE') {
+      errors.push(`Assignment blocked: This driver is currently ${driver.status} and cannot be assigned to a new trip.`);
     }
 
     // Check license expiry
     if (new Date(driver.licenseExpiryDate) < new Date()) {
       errors.push('Assignment blocked: The driver\'s license has expired. Please update their credentials.');
-    }
-
-    // Check license category matching
-    const categoryMap = {
-      'Truck': 'HMV',
-      'Trailer': 'HMV',
-      'Tanker': 'HMV',
-      'Van': 'LMV',
-      'Pickup': 'LMV'
-    };
-
-    const requiredCategory = categoryMap[vehicle.vehicleType];
-    if (requiredCategory && driver.licenseCategory !== 'Both' && driver.licenseCategory !== requiredCategory) {
-      errors.push(`Driver license category mismatch: ${driver.name} holds an ${driver.licenseCategory} license, which cannot operate a ${vehicle.vehicleType} (Requires: ${requiredCategory}).`);
     }
 
     return {
@@ -124,7 +110,7 @@ export const tripService = {
     // Update driver status
     await prisma.driver.update({
       where: { id: trip.driverId },
-      data: { status: 'On Duty' }
+      data: { status: 'ON DUTY' }
     });
 
     return updatedTrip;
@@ -162,7 +148,7 @@ export const tripService = {
     await prisma.driver.update({
       where: { id: trip.driverId },
       data: {
-        status: 'Off Duty',
+        status: 'AVAILABLE',
         tripsCompleted: { increment: 1 }
       }
     });
@@ -195,7 +181,7 @@ export const tripService = {
 
       await prisma.driver.update({
         where: { id: trip.driverId },
-        data: { status: 'Off Duty' }
+        data: { status: 'AVAILABLE' }
       });
     }
 

@@ -12,6 +12,13 @@ router.get('/', async (req, res, next) => {
   } catch (error) { next(error); }
 });
 
+router.get('/available', async (req, res, next) => {
+  try {
+    const drivers = await driverService.getAvailableDrivers(req.query.vehicleType);
+    res.json(drivers);
+  } catch (error) { next(error); }
+});
+
 router.get('/:id', async (req, res, next) => {
   try {
     const driver = await driverService.getDriverById(req.params.id);

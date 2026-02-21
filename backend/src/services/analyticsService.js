@@ -2,13 +2,29 @@ import prisma from '../lib/prisma.js';
 
 export const analyticsService = {
   // General KPI — used by all roles
-  getFleetKPI: async () => {
-    const activeFleet = await prisma.vehicle.count({ where: { status: 'On Trip' } });
-    const maintenanceAlerts = await prisma.vehicle.count({ where: { status: 'In Shop' } });
-    const totalVehicles = await prisma.vehicle.count({ where: { status: { not: 'Out of Service' } } });
-    const pendingCargo = await prisma.trip.count({ where: { status: 'Draft' } });
+  getFleetKPI: async (filters = {}) => {
+    const vWhere = {};
+    if (filters.vehicleType) vWhere.vehicleType = filters.vehicleType;
+
+    const vehicles = await prisma.vehicle.findMany({ where: vWhere });
+    const totalVehicles = vehicles.filter(v => v.status !== 'Out of Service').length;
+    const activeFleet = vehicles.filter(v => v.status === 'On Trip').length;
+    const maintenanceAlerts = vehicles.filter(v => v.status === 'In Shop').length;
+
+    // For pending cargo, we filter trips that would use these types of vehicles
+    const tWhere = { status: 'Draft' };
+    if (filters.vehicleType) tWhere.vehicle = { vehicleType: filters.vehicleType };
+    const pendingCargo = await prisma.trip.count({ where: tWhere });
+
     const utilizationRate = totalVehicles > 0 ? (activeFleet / totalVehicles) * 100 : 0;
-    return { activeFleet, maintenanceAlerts, utilizationRate: Math.round(utilizationRate * 100) / 100, pendingCargo, totalVehicles };
+
+    return {
+      activeFleet,
+      maintenanceAlerts,
+      utilizationRate: Math.round(utilizationRate * 10) / 10,
+      pendingCargo,
+      totalVehicles
+    };
   },
 
   // Operational KPIs — Dispatcher
@@ -16,7 +32,7 @@ export const analyticsService = {
     const activeTrips = await prisma.trip.count({ where: { status: 'Dispatched' } });
     const pendingTrips = await prisma.trip.count({ where: { status: 'Draft' } });
     const availableVehicles = await prisma.vehicle.count({ where: { status: 'Available' } });
-    const availableDrivers = await prisma.driver.count({ where: { status: 'On Duty' } });
+    const availableDrivers = await prisma.driver.count({ where: { status: 'AVAILABLE' } });
     return { activeTrips, pendingTrips, availableVehicles, availableDrivers };
   },
 
@@ -26,7 +42,7 @@ export const analyticsService = {
     const thirtyDaysLater = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
     const expiredLicenses = await prisma.driver.count({ where: { licenseExpiryDate: { lt: now } } });
     const expiringLicenses = await prisma.driver.count({ where: { licenseExpiryDate: { gte: now, lte: thirtyDaysLater } } });
-    const suspendedDrivers = await prisma.driver.count({ where: { status: 'Suspended' } });
+    const suspendedDrivers = await prisma.driver.count({ where: { status: 'SUSPENDED' } });
     const totalDrivers = await prisma.driver.count();
     const driversWithComplaints = await prisma.driver.count({ where: { complaintsCount: { gt: 0 } } });
     const drivers = await prisma.driver.findMany({ select: { safetyScore: true } });

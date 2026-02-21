@@ -5,6 +5,13 @@ import api from '../api/axios';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext.jsx';
 
+const STATUS_CONFIG = {
+    AVAILABLE: { color: '#22C55E', label: 'AVAILABLE' },
+    'ON DUTY': { color: '#38BDF8', label: 'ON DUTY' },
+    'ON LEAVE': { color: '#F97316', label: 'ON LEAVE' },
+    SUSPENDED: { color: '#EF4444', label: 'SUSPENDED' },
+};
+
 export default function Drivers() {
     const { can } = useAuth();
     const [drivers, setDrivers] = useState([]);
@@ -31,6 +38,16 @@ export default function Drivers() {
         } catch (err) {
             const serverError = err.response?.data?.error?.message || err.response?.data?.message || 'Check license data';
             toast.error(serverError);
+        }
+    };
+
+    const handleStatusUpdate = async (id, newStatus) => {
+        try {
+            await api.patch(`/drivers/${id}/status`, { status: newStatus });
+            toast.success(`Personnel status: ${newStatus}`);
+            fetchDrivers();
+        } catch (err) {
+            toast.error(err.response?.data?.error?.message || 'Update failed');
         }
     };
 
@@ -74,11 +91,33 @@ export default function Drivers() {
                                 <td style={{ fontWeight: 800, color: d.safetyScore >= 80 ? '#22C55E' : d.safetyScore >= 60 ? '#F5BF00' : '#EF4444' }}>{d.safetyScore}%</td>
                                 <td style={{ color: 'var(--text-sub)' }}>{d.tripsCompleted}</td>
                                 <td>
-                                    <span className="badge" style={{
-                                        background: d.status === 'On Duty' ? '#22C55E15' : '#EF444415',
-                                        color: d.status === 'On Duty' ? '#22C55E' : '#EF4444',
-                                        border: `1px solid ${d.status === 'On Duty' ? '#22C55E30' : '#EF444430'}`
-                                    }}>{d.status}</span>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <span className="badge" style={{
+                                            background: `${STATUS_CONFIG[d.status]?.color || '#94A3B8'}15`,
+                                            color: STATUS_CONFIG[d.status]?.color || '#94A3B8',
+                                            border: `1px solid ${STATUS_CONFIG[d.status]?.color || '#94A3B8'}30`
+                                        }}>{d.status}</span>
+
+                                        {can.manage.drivers && d.status !== 'ON DUTY' && (
+                                            <select
+                                                value={d.status}
+                                                onChange={(e) => handleStatusUpdate(d.id, e.target.value)}
+                                                style={{
+                                                    padding: '2px 8px',
+                                                    fontSize: '0.7rem',
+                                                    borderRadius: '6px',
+                                                    background: 'var(--bg-input)',
+                                                    color: 'var(--text-main)',
+                                                    border: '1px solid var(--border)',
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                <option value="AVAILABLE">Available</option>
+                                                <option value="ON LEAVE">Leave</option>
+                                                <option value="SUSPENDED">Suspend</option>
+                                            </select>
+                                        )}
+                                    </div>
                                 </td>
                             </tr>
                         ))}

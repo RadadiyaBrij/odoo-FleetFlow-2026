@@ -34,7 +34,7 @@ export const driverService = {
           phone,
           licenseNumber,
           licenseCategory: licenseCategory || 'LMV',
-          status: isExpired ? 'Suspended' : 'On Duty',
+          status: isExpired ? 'SUSPENDED' : 'AVAILABLE',
           licenseExpiryDate: expiry
         }
       });
@@ -72,7 +72,7 @@ export const driverService = {
 
   // Safety Officer: update duty status
   updateDriverStatus: async (id, status) => {
-    const allowed = ['On Duty', 'Taking a Break', 'Suspended'];
+    const allowed = ['AVAILABLE', 'ON LEAVE', 'SUSPENDED'];
     if (!allowed.includes(status)) throw new Error(`Invalid status. Allowed: ${allowed.join(', ')}`);
     return prisma.driver.update({ where: { id: parseInt(id) }, data: { status } });
   },
@@ -80,8 +80,17 @@ export const driverService = {
   // Auto-lock drivers with expired licenses (Safety Lock feature)
   checkAndLockExpiredLicenses: async () => {
     return prisma.driver.updateMany({
-      where: { licenseExpiryDate: { lt: new Date() }, status: { not: 'Suspended' } },
-      data: { status: 'Suspended' }
+      where: { licenseExpiryDate: { lt: new Date() }, status: { not: 'SUSPENDED' } },
+      data: { status: 'SUSPENDED' }
+    });
+  },
+
+  getAvailableDrivers: async () => {
+    return prisma.driver.findMany({
+      where: {
+        status: 'AVAILABLE'
+      },
+      orderBy: { name: 'asc' }
     });
   },
 

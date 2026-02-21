@@ -50,34 +50,40 @@ export default function Dashboard() {
     const [kpi, setKpi] = useState({});
     const [extra, setExtra] = useState({});
     const [trips, setTrips] = useState([]);
+    const [filters, setFilters] = useState({ vehicleType: '', status: '', region: '' });
+
+    const fetchAll = async () => {
+        try {
+            const params = new URLSearchParams();
+            if (filters.vehicleType) params.append('vehicleType', filters.vehicleType);
+
+            const kpiRes = await api.get(`/analytics/kpi?${params.toString()}`);
+            setKpi(kpiRes.data);
+
+            if (role === 'MANAGER' || role === 'DISPATCHER') {
+                const [op, tr] = await Promise.all([api.get('/analytics/operational'), api.get('/trips')]);
+                setExtra(op.data);
+                setTrips(tr.data.slice(0, 5));
+            }
+            if (role === 'MANAGER' || role === 'SAFETY_OFFICER') {
+                const safety = await api.get('/analytics/safety');
+                setExtra(prev => ({ ...prev, ...safety.data }));
+            }
+            if (role === 'MANAGER' || role === 'ANALYST') {
+                const fin = await api.get('/analytics/financial');
+                setExtra(prev => ({ ...prev, ...fin.data }));
+            }
+        } catch { toast.error('Check server connection'); }
+    };
 
     useEffect(() => {
-        const fetchAll = async () => {
-            try {
-                const kpiRes = await api.get('/analytics/kpi');
-                setKpi(kpiRes.data);
-                if (role === 'MANAGER' || role === 'DISPATCHER') {
-                    const [op, tr] = await Promise.all([api.get('/analytics/operational'), api.get('/trips')]);
-                    setExtra(op.data);
-                    setTrips(tr.data.slice(0, 5));
-                }
-                if (role === 'MANAGER' || role === 'SAFETY_OFFICER') {
-                    const safety = await api.get('/analytics/safety');
-                    setExtra(prev => ({ ...prev, ...safety.data }));
-                }
-                if (role === 'MANAGER' || role === 'ANALYST') {
-                    const fin = await api.get('/analytics/financial');
-                    setExtra(prev => ({ ...prev, ...fin.data }));
-                }
-            } catch { toast.error('Failed to load dashboard'); }
-        };
         fetchAll();
-    }, [role]);
+    }, [role, filters.vehicleType]);
 
     const hour = new Date().getHours();
     const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
-    const roleLabel = { MANAGER: 'Fleet Manager', DISPATCHER: 'Dispatcher', SAFETY_OFFICER: 'Safety Officer', ANALYST: 'Financial Analyst' };
+    const roleLabel = { MANAGER: 'Fleet Commander', DISPATCHER: 'Operations Lead', SAFETY_OFFICER: 'Compliance Officer', ANALYST: 'Fleet Strategist' };
 
     return (
         <motion.div initial="hidden" animate="show" variants={container}>
@@ -93,24 +99,53 @@ export default function Dashboard() {
                         {greeting}, <span style={{ color: 'var(--primary)' }}>{user?.firstName}</span>
                     </h1>
                     <p style={{ color: 'var(--text-dim)', marginTop: '0.5rem', fontSize: '0.9rem' }}>
-                        Here's your live fleet intelligence dashboard
+                        Command Center • Live Fleet Oversight
                     </p>
                 </div>
-                <div style={{ textAlign: 'right', color: 'var(--text-dim)', fontSize: '0.8rem' }}>
-                    <p style={{ fontWeight: 600, color: 'var(--text-sub)' }}>{new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
-                    <p style={{ fontSize: '0.72rem', marginTop: '2px' }}>Auto-refreshing every 60s</p>
+
+                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                    <select
+                        value={filters.vehicleType}
+                        onChange={e => setFilters({ ...filters, vehicleType: e.target.value })}
+                        style={{ padding: '8px 12px', fontSize: '0.8rem', borderRadius: '10px', background: 'var(--bg-input)', color: 'var(--text-main)', border: '1px solid var(--border)' }}
+                    >
+                        <option value="">All Asset Types</option>
+                        <option value="Truck">Heavy Trucks</option>
+                        <option value="Van">Delivery Vans</option>
+                        <option value="Bike">Last-Mile Bikes</option>
+                    </select>
+
+                    <select
+                        value={filters.status}
+                        onChange={e => setFilters({ ...filters, status: e.target.value })}
+                        style={{ padding: '8px 12px', fontSize: '0.8rem', borderRadius: '10px', background: 'var(--bg-input)', color: 'var(--text-main)', border: '1px solid var(--border)' }}
+                    >
+                        <option value="">Global Status</option>
+                        <option value="active">Active Only</option>
+                        <option value="idle">Idle Only</option>
+                    </select>
+
+                    <select
+                        value={filters.region}
+                        onChange={e => setFilters({ ...filters, region: e.target.value })}
+                        style={{ padding: '8px 12px', fontSize: '0.8rem', borderRadius: '10px', background: 'var(--bg-input)', color: 'var(--text-main)', border: '1px solid var(--border)' }}
+                    >
+                        <option value="">All Regions</option>
+                        <option value="north">North Hub</option>
+                        <option value="south">South Hub</option>
+                    </select>
                 </div>
             </motion.div>
 
             {/* Fleet KPIs */}
             <motion.div variants={item}>
-                <SectionHeader icon={<Truck size={16} />} title="Fleet Overview" />
+                <SectionHeader icon={<Activity size={16} />} title="Command Center Overview" />
             </motion.div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2.5rem' }}>
-                <StatCard label="Active Fleet" value={kpi.activeFleet ?? '—'} icon={<Truck size={20} />} color="#F5BF00" accent sub={`of ${kpi.totalVehicles} vehicles`} />
-                <StatCard label="Fleet Utilization" value={`${kpi.utilizationRate ?? 0}%`} icon={<Activity size={20} />} color="#38BDF8" sub="Active / Total ratio" />
-                <StatCard label="In Maintenance" value={kpi.maintenanceAlerts ?? '—'} icon={<AlertTriangle size={20} />} color="#F97316" sub="Vehicles in shop" />
-                <StatCard label="Awaiting Dispatch" value={kpi.pendingCargo ?? '—'} icon={<Map size={20} />} color="#A78BFA" sub="Cargo pending" />
+                <StatCard label="Active Fleet" value={kpi.activeFleet ?? '—'} icon={<Truck size={20} />} color="#F5BF00" accent sub="Vehicles 'On Trip'" />
+                <StatCard label="Utilization Rate" value={`${kpi.utilizationRate ?? 0}%`} icon={<Activity size={20} />} color="#38BDF8" sub="Assigned vs Idle" />
+                <StatCard label="Maintenance Alerts" value={kpi.maintenanceAlerts ?? '—'} icon={<AlertTriangle size={20} />} color="#F97316" sub="Marked 'In Shop'" />
+                <StatCard label="Pending Cargo" value={kpi.pendingCargo ?? '—'} icon={<Map size={20} />} color="#A78BFA" sub="Awaiting assignment" />
             </div>
 
             {/* Operational KPIs */}
